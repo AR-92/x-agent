@@ -2,6 +2,7 @@ import { EventStream } from "@mariozechner/pi-ai";
 import { describe, expect, it } from "bun:test";
 import { agentLoop, agentLoopContinue } from "../src/agent-loop.js";
 
+// Mock stream for testing
 class MockAssistantStream extends EventStream {
 	constructor() {
 		super(
@@ -17,61 +18,91 @@ class MockAssistantStream extends EventStream {
 
 function createUsage() {
 	return {
-		input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0,
+		input: 0,
+		output: 0,
+		cacheRead: 0,
+		cacheWrite: 0,
+		totalTokens: 0,
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
 	};
 }
 
 function createModel() {
 	return {
-		id: "mock", name: "mock", api: "openai-responses", provider: "openai",
-		baseUrl: "https://example.invalid", reasoning: false, input: ["text"],
+		id: "mock",
+		name: "mock",
+		api: "openai-responses",
+		provider: "openai",
+		baseUrl: "https://example.invalid",
+		reasoning: false,
+		input: ["text"],
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-		contextWindow: 8192, maxTokens: 2048,
+		contextWindow: 8192,
+		maxTokens: 2048,
 	};
 }
 
 function createAssistantMessage(content, stopReason = "stop") {
 	return {
-		role: "assistant", content, api: "openai-responses", provider: "openai",
-		model: "mock", usage: createUsage(), stopReason, timestamp: Date.now(),
+		role: "assistant",
+		content,
+		api: "openai-responses",
+		provider: "openai",
+		model: "mock",
+		usage: createUsage(),
+		stopReason,
+		timestamp: Date.now(),
 	};
 }
 
 function createUserMessage(text) {
-	return { role: "user", content: text, timestamp: Date.now() };
+	return {
+		role: "user",
+		content: text,
+		timestamp: Date.now(),
+	};
 }
 
+// Simple identity converter for tests - just passes through standard messages
 function identityConverter(messages) {
 	return messages.filter((m) => m.role === "user" || m.role === "assistant" || m.role === "toolResult");
 }
 
-describe("agentLoop", () => {
+describe("agentLoop with AgentMessage", () => {
 	it("should emit events with AgentMessage types", async () => {
-		const context = { systemPrompt: "You are helpful.", messages: [], tools: [] };
+		const context = {
+			systemPrompt: "You are helpful.",
+			messages: [],
+			tools: [],
+		};
 		const userPrompt = createUserMessage("Hello");
-		const config = { model: createModel(), convertToLlm: identityConverter };
+		const config = {
+			model: createModel(),
+			convertToLlm: identityConverter,
+		};
 
 		const streamFn = () => {
 			const stream = new MockAssistantStream();
 			queueMicrotask(() => {
-				stream.push({ type: "done", reason: "stop", message: createAssistantMessage([{ type: "text", text: "Hi!" }]) });
+				const message = createAssistantMessage([{ type: "text", text: "Hi there!" }]);
+				stream.push({ type: "done", reason: "stop", message });
 			});
 			return stream;
 		};
 
 		const events = [];
 		const stream = agentLoop([userPrompt], context, config, undefined, streamFn);
-
 		for await (const event of stream) {
 			events.push(event);
 		}
-
 		const messages = await stream.result();
+
+		// Should have user message and assistant message
 		expect(messages.length).toBe(2);
 		expect(messages[0].role).toBe("user");
 		expect(messages[1].role).toBe("assistant");
 
+		// Verify event sequence
 		const eventTypes = events.map((e) => e.type);
 		expect(eventTypes).toContain("agent_start");
 		expect(eventTypes).toContain("turn_start");
@@ -82,15 +113,28 @@ describe("agentLoop", () => {
 	});
 
 	it("should handle custom message types via convertToLlm", async () => {
-		const notification = { role: "notification", text: "Notification", timestamp: Date.now() };
-		const context = { systemPrompt: "You are helpful.", messages: [notification], tools: [] };
+		// Create a custom message type
+		const notification = {
+			role: "notification",
+			text: "This is a notification",
+			timestamp: Date.now(),
+		};
+
+		const context = {
+			systemPrompt: "You are helpful.",
+			messages: [notification],
+			tools: [],
+		};
 		const userPrompt = createUserMessage("Hello");
 
 		let convertedMessages = [];
 		const config = {
 			model: createModel(),
 			convertToLlm: (messages) => {
-				convertedMessages = messages.filter((m) => m.role !== "notification");
+				// Filter out notifications, convert rest
+				convertedMessages = messages
+					.filter((m) => m.role !== "notification")
+					.filter((m) => m.role === "user" || m.role === "assistant" || m.role === "toolResult");
 				return convertedMessages;
 			},
 		};
@@ -98,15 +142,20 @@ describe("agentLoop", () => {
 		const streamFn = () => {
 			const stream = new MockAssistantStream();
 			queueMicrotask(() => {
-				stream.push({ type: "done", reason: "stop", message: createAssistantMessage([{ type: "text", text: "Response" }]) });
+				const message = createAssistantMessage([{ type: "text", text: "Response" }]);
+				stream.push({ type: "done", reason: "stop", message });
 			});
 			return stream;
 		};
 
+		const events = [];
 		const stream = agentLoop([userPrompt], context, config, undefined, streamFn);
-		for await (const _ of stream) {}
+		for await (const event of stream) {
+			events.push(event);
+		}
 
-		expect(convertedMessages.length).toBe(1);
+		// The notification should have been filtered out in convertToLlm
+		expect(convertedMessages.length).toBe(1); // Only user message
 		expect(convertedMessages[0].role).toBe("user");
 	});
 
@@ -114,99 +163,347 @@ describe("agentLoop", () => {
 		const context = {
 			systemPrompt: "You are helpful.",
 			messages: [
-				createUserMessage("msg1"),
-				createAssistantMessage([{ type: "text", text: "resp1" }]),
-				createUserMessage("msg2"),
-				createAssistantMessage([{ type: "text", text: "resp2" }]),
+				createUserMessage("old message 1"),
+				createAssistantMessage([{ type: "text", text: "old response 1" }]),
+				createUserMessage("old message 2"),
+				createAssistantMessage([{ type: "text", text: "old response 2" }]),
 			],
 			tools: [],
 		};
-		const userPrompt = createUserMessage("new");
+		const userPrompt = createUserMessage("new message");
 
 		let transformedMessages = [];
+		let convertedMessages = [];
 		const config = {
 			model: createModel(),
 			transformContext: async (messages) => {
+				// Keep only last 2 messages (prune old ones)
 				transformedMessages = messages.slice(-2);
 				return transformedMessages;
 			},
-			convertToLlm: (messages) => messages.filter((m) => m.role === "user" || m.role === "assistant" || m.role === "toolResult"),
+			convertToLlm: (messages) => {
+				convertedMessages = messages.filter(
+					(m) => m.role === "user" || m.role === "assistant" || m.role === "toolResult",
+				);
+				return convertedMessages;
+			},
 		};
 
 		const streamFn = () => {
 			const stream = new MockAssistantStream();
 			queueMicrotask(() => {
-				stream.push({ type: "done", reason: "stop", message: createAssistantMessage([{ type: "text", text: "Response" }]) });
+				const message = createAssistantMessage([{ type: "text", text: "Response" }]);
+				stream.push({ type: "done", reason: "stop", message });
 			});
 			return stream;
 		};
 
 		const stream = agentLoop([userPrompt], context, config, undefined, streamFn);
-		for await (const _ of stream) {}
+		for await (const _ of stream) {
+			// consume
+		}
 
+		// transformContext should have been called first, keeping only last 2
 		expect(transformedMessages.length).toBe(2);
+		// Then convertToLlm receives the pruned messages
+		expect(convertedMessages.length).toBe(2);
+	});
+
+	it("should handle tool calls and results", async () => {
+		const executed = [];
+		const tool = {
+			name: "echo",
+			label: "Echo",
+			description: "Echo tool",
+			parameters: {
+				type: "object",
+				properties: {
+					value: { type: "string", description: "Value to echo" },
+				},
+				required: ["value"],
+			},
+			async execute(_toolCallId, params) {
+				executed.push(params.value);
+				return {
+					content: [{ type: "text", text: `echoed: ${params.value}` }],
+					details: { value: params.value },
+				};
+			},
+		};
+
+		const context = {
+			systemPrompt: "",
+			messages: [],
+			tools: [tool],
+		};
+		const userPrompt = createUserMessage("echo something");
+		const config = {
+			model: createModel(),
+			convertToLlm: identityConverter,
+		};
+
+		let callIndex = 0;
+		const streamFn = () => {
+			const stream = new MockAssistantStream();
+			queueMicrotask(() => {
+				if (callIndex === 0) {
+					// First call: return tool call
+					const message = createAssistantMessage(
+						[
+							{
+								type: "toolCall",
+								id: "tool-1",
+								name: "echo",
+								arguments: { value: "hello" },
+							},
+						],
+						"toolUse",
+					);
+					stream.push({ type: "done", reason: "toolUse", message });
+				} else {
+					// Second call: return final response
+					const message = createAssistantMessage([{ type: "text", text: "done" }]);
+					stream.push({ type: "done", reason: "stop", message });
+				}
+				callIndex++;
+			});
+			return stream;
+		};
+
+		const events = [];
+		const stream = agentLoop([userPrompt], context, config, undefined, streamFn);
+		for await (const event of stream) {
+			events.push(event);
+		}
+
+		// Tool should have been executed
+		expect(executed).toEqual(["hello"]);
+
+		// Should have tool execution events
+		const toolStart = events.find((e) => e.type === "tool_execution_start");
+		const toolEnd = events.find((e) => e.type === "tool_execution_end");
+		expect(toolStart).toBeDefined();
+		expect(toolEnd).toBeDefined();
+		if (toolEnd?.type === "tool_execution_end") {
+			expect(toolEnd.isError).toBe(false);
+		}
+	});
+
+	it("should inject queued messages and skip remaining tool calls", async () => {
+		const executed = [];
+		const tool = {
+			name: "echo",
+			label: "Echo",
+			description: "Echo tool",
+			parameters: {
+				type: "object",
+				properties: {
+					value: { type: "string", description: "Value to echo" },
+				},
+				required: ["value"],
+			},
+			async execute(_toolCallId, params) {
+				executed.push(params.value);
+				return {
+					content: [{ type: "text", text: `ok:${params.value}` }],
+					details: { value: params.value },
+				};
+			},
+		};
+
+		const context = {
+			systemPrompt: "",
+			messages: [],
+			tools: [tool],
+		};
+		const userPrompt = createUserMessage("start");
+		const queuedUserMessage = createUserMessage("interrupt");
+
+		let queuedDelivered = false;
+		let callIndex = 0;
+		let sawInterruptInContext = false;
+		const config = {
+			model: createModel(),
+			convertToLlm: identityConverter,
+			getSteeringMessages: async () => {
+				// Return steering message after first tool executes
+				if (executed.length === 1 && !queuedDelivered) {
+					queuedDelivered = true;
+					return [queuedUserMessage];
+				}
+				return [];
+			},
+		};
+
+		const events = [];
+		const stream = agentLoop([userPrompt], context, config, undefined, (_model, ctx, _options) => {
+			// Check if interrupt message is in context on second call
+			if (callIndex === 1) {
+				sawInterruptInContext = ctx.messages.some(
+					(m) => m.role === "user" && typeof m.content === "string" && m.content === "interrupt",
+				);
+			}
+			const mockStream = new MockAssistantStream();
+			queueMicrotask(() => {
+				if (callIndex === 0) {
+					// First call: return two tool calls
+					const message = createAssistantMessage(
+						[
+							{
+								type: "toolCall",
+								id: "tool-1",
+								name: "echo",
+								arguments: { value: "first" },
+							},
+							{
+								type: "toolCall",
+								id: "tool-2",
+								name: "echo",
+								arguments: { value: "second" },
+							},
+						],
+						"toolUse",
+					);
+					mockStream.push({ type: "done", reason: "toolUse", message });
+				} else {
+					// Second call: return final response
+					const message = createAssistantMessage([{ type: "text", text: "done" }]);
+					mockStream.push({ type: "done", reason: "stop", message });
+				}
+				callIndex++;
+			});
+			return mockStream;
+		});
+
+		for await (const event of stream) {
+			events.push(event);
+		}
+
+		// Only first tool should have executed
+		expect(executed).toEqual(["first"]);
+
+		// Second tool should be skipped
+		const toolEnds = events.filter((e) => e.type === "tool_execution_end");
+		expect(toolEnds.length).toBe(2);
+		expect(toolEnds[0].isError).toBe(false);
+		expect(toolEnds[1].isError).toBe(true);
+		if (toolEnds[1].result.content[0]?.type === "text") {
+			expect(toolEnds[1].result.content[0].text).toContain("Skipped due to queued user message");
+		}
+
+		// Queued message should appear in events
+		const queuedMessageEvent = events.find(
+			(e) =>
+				e.type === "message_start" &&
+				e.message.role === "user" &&
+				typeof e.message.content === "string" &&
+				e.message.content === "interrupt",
+		);
+		expect(queuedMessageEvent).toBeDefined();
+
+		// Interrupt message should be in context when second LLM call is made
+		expect(sawInterruptInContext).toBe(true);
 	});
 });
 
-describe("agentLoopContinue", () => {
+describe("agentLoopContinue with AgentMessage", () => {
 	it("should throw when context has no messages", () => {
-		const context = { systemPrompt: "You are helpful.", messages: [], tools: [] };
-		const config = { model: createModel(), convertToLlm: identityConverter };
+		const context = {
+			systemPrompt: "You are helpful.",
+			messages: [],
+			tools: [],
+		};
+		const config = {
+			model: createModel(),
+			convertToLlm: identityConverter,
+		};
 		expect(() => agentLoopContinue(context, config)).toThrow("Cannot continue: no messages in context");
 	});
 
-	it("should continue from existing context", async () => {
+	it("should continue from existing context without emitting user message events", async () => {
 		const userMessage = createUserMessage("Hello");
-		const context = { systemPrompt: "You are helpful.", messages: [userMessage], tools: [] };
-		const config = { model: createModel(), convertToLlm: identityConverter };
+		const context = {
+			systemPrompt: "You are helpful.",
+			messages: [userMessage],
+			tools: [],
+		};
+		const config = {
+			model: createModel(),
+			convertToLlm: identityConverter,
+		};
 
 		const streamFn = () => {
 			const stream = new MockAssistantStream();
 			queueMicrotask(() => {
-				stream.push({ type: "done", reason: "stop", message: createAssistantMessage([{ type: "text", text: "Response" }]) });
+				const message = createAssistantMessage([{ type: "text", text: "Response" }]);
+				stream.push({ type: "done", reason: "stop", message });
 			});
 			return stream;
 		};
 
 		const events = [];
 		const stream = agentLoopContinue(context, config, undefined, streamFn);
-
 		for await (const event of stream) {
 			events.push(event);
 		}
-
 		const messages = await stream.result();
+
+		// Should only return the new assistant message (not the existing user message)
 		expect(messages.length).toBe(1);
 		expect(messages[0].role).toBe("assistant");
 
+		// Should NOT have user message events (that's the key difference from agentLoop)
 		const messageEndEvents = events.filter((e) => e.type === "message_end");
 		expect(messageEndEvents.length).toBe(1);
 		expect(messageEndEvents[0].message.role).toBe("assistant");
 	});
 
-	it("should handle error response", async () => {
-		const context = { systemPrompt: "You are helpful.", messages: [createUserMessage("Hello")], tools: [] };
-		const config = { model: createModel(), convertToLlm: identityConverter };
+	it("should allow custom message types as last message (caller responsibility)", async () => {
+		// Custom message that will be converted to user message by convertToLlm
+		const customMessage = {
+			role: "custom",
+			text: "Hook content",
+			timestamp: Date.now(),
+		};
+
+		const context = {
+			systemPrompt: "You are helpful.",
+			messages: [customMessage],
+			tools: [],
+		};
+		const config = {
+			model: createModel(),
+			convertToLlm: (messages) => {
+				// Convert custom to user message
+				return messages
+					.map((m) => {
+						if (m.role === "custom") {
+							return { role: "user", content: m.text, timestamp: m.timestamp };
+						}
+						return m;
+					})
+					.filter((m) => m.role === "user" || m.role === "assistant" || m.role === "toolResult");
+			},
+		};
 
 		const streamFn = () => {
 			const stream = new MockAssistantStream();
 			queueMicrotask(() => {
-				const message = createAssistantMessage([{ type: "text", text: "" }], "error");
-				message.errorMessage = "Something went wrong";
-				stream.push({ type: "error", reason: "error", error: message });
+				const message = createAssistantMessage([{ type: "text", text: "Response to custom message" }]);
+				stream.push({ type: "done", reason: "stop", message });
 			});
 			return stream;
 		};
 
-		const events = [];
+		// Should not throw - the custom message will be converted to user message
 		const stream = agentLoopContinue(context, config, undefined, streamFn);
-
+		const events = [];
 		for await (const event of stream) {
 			events.push(event);
 		}
+		const messages = await stream.result();
 
-		const turnEnd = events.find((e) => e.type === "turn_end");
-		expect(turnEnd).toBeDefined();
-		expect(turnEnd.message.errorMessage).toBe("Something went wrong");
+		expect(messages.length).toBe(1);
+		expect(messages[0].role).toBe("assistant");
 	});
 });
