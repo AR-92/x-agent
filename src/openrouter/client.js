@@ -1,118 +1,181 @@
 /**
- * OpenRouter API Client
- * Handles communication with OpenRouter API
+ * OpenRouter Stream - Complete Implementation
+ * Matches pi-ai streamSimple API with full event support
  */
 
 import { createOpenRouterStream } from './stream.js';
 import { convertToOpenRouterMessages, convertToOpenRouterTools, createAssistantMessage } from './messages.js';
+import { validateToolArguments } from './tools.js';
 
 /**
- * OpenRouter API configuration
  * @typedef {Object} OpenRouterConfig
  * @property {string} apiKey - OpenRouter API key
- * @property {string} [baseUrl] - API base URL (default: https://openrouter.ai/api/v1)
- * @property {string} [siteUrl] - Site URL for OpenRouter ranking
- * @property {string} [siteName] - Site name for OpenRouter ranking
+ * @property {string} [baseUrl] - API base URL
+ * @property {string} [siteUrl] - Site URL for ranking
+ * @property {string} [siteName] - Site name for ranking
  * @property {Record<string, string>} [headers] - Additional headers
+ * @property {AbortSignal} [signal] - Abort signal
+ * @property {string} [reasoning] - Reasoning level
+ * @property {number} [temperature] - Temperature
+ * @property {number} [maxTokens] - Max tokens
+ * @property {(payload: any) => void} [onPayload] - Payload inspection callback
  */
 
 /**
- * Create OpenRouter stream function for X-Agent
- * 
- * @param {OpenRouterConfig} config - OpenRouter configuration
- * @returns {Function} Stream function compatible with X-Agent
+ * @typedef {Object} OpenRouterContext
+ * @property {string} [systemPrompt] - System prompt
+ * @property {any[]} messages - Messages
+ * @property {any[]} [tools] - Tools
  */
-export function createOpenRouterStreamFn(config) {
+
+/**
+ * Complete OpenRouter stream function matching pi-ai streamSimple
+ * 
+ * @param {OpenRouterConfig} config - Configuration
+ * @param {OpenRouterContext} context - Context
+ * @returns {Promise<any>} Event stream
+ */
+export async function openRouterStream(config, context) {
 	const {
 		apiKey,
 		baseUrl = 'https://openrouter.ai/api/v1',
 		siteUrl,
 		siteName,
 		headers = {},
+		signal,
+		reasoning,
+		temperature,
+		maxTokens,
+		onPayload,
 	} = config;
 
 	if (!apiKey) {
 		throw new Error('OpenRouter API key is required');
 	}
 
-	/**
-	 * Stream function that X-Agent will call
-	 * 
-	 * @param {any} model - Model configuration
-	 * @param {any} context - Agent context (messages, tools, systemPrompt)
-	 * @param {any} options - Stream options (temperature, maxTokens, signal, etc.)
-	 * @returns {Promise<any>} Event stream
-	 */
-	return async function openRouterStream(model, context, options) {
-		const stream = createOpenRouterStream();
+	const stream = createOpenRouterStream();
 
-		// Convert messages and tools to OpenRouter format
-		const openRouterMessages = convertToOpenRouterMessages(context.messages, context.systemPrompt);
-		const openRouterTools = context.tools?.length > 0 ? convertToOpenRouterTools(context.tools) : undefined;
+	// Convert messages and tools
+	const openRouterMessages = convertToOpenRouterMessages(context.messages, context.systemPrompt);
+	const openRouterTools = context.tools?.length > 0 ? convertToOpenRouterTools(context.tools) : undefined;
 
-		// Build request body
-		const requestBody = {
-			model: model.id,
-			message: openRouterMessages,
-			tools: openRouterTools,
-			stream: true,
-			temperature: options.temperature,
-			max_tokens: options.maxTokens,
-			// OpenRouter-specific options
-			transforms: ['middle-out'], // Compress long contexts
-			...(siteUrl && { site_url: siteUrl }),
-			...(siteName && { site_name: siteName }),
-		};
+	// Build request with ALL OpenRouter parameters
+	const requestBody = {
+		model: config.modelId,
+		messages: openRouterMessages,
+		
+		// Sampling parameters
+		temperature: temperature ?? 1.0,
+		max_tokens: maxTokens,
+		top_p: config.top_p,
+		top_k: config.top_k,
+		frequency_penalty: config.frequency_penalty,
+		presence_penalty: config.presence_penalty,
+		repetition_penalty: config.repetition_penalty,
+		min_p: config.min_p,
+		top_a: config.top_a,
+		seed: config.seed,
+		
+		// Output control
+		stop: config.stop,
+		verbosity: config.verbosity,
+		
+		// Log probs
+		logprobs: config.logprobs,
+		top_logprobs: config.top_logprobs,
+		logit_bias: config.logit_bias,
+		
+		// Structured outputs
+		response_format: config.response_format,
+		
+		// Tool calling
+		tools: openRouterTools,
+		tool_choice: config.tool_choice,
+		parallel_tool_calls: config.parallel_tool_calls ?? true,
+		
+		// OpenRouter specific
+		transforms: config.transforms ?? ['middle-out'], // Context compression
+		include_reasoning: !!reasoning,
+		
+		// Provider passthrough
+		provider: config.provider,
+		
+		// Site info for ranking
+		...(siteUrl && { site_url: siteUrl }),
+		...(siteName && { site_name: siteName }),
+	};
 
-		// Add reasoning support
-		if (options.reasoning) {
-			requestBody.include_reasoning = true;
+	// Remove undefined values
+	Object.keys(requestBody).forEach(key => {
+		if (requestBody[key] === undefined) {
+			delete requestBody[key];
 		}
+	});
 
-		try {
-			const response = await fetch(`${baseUrl}/chat/completions`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${apiKey}`,
-					'HTTP-Referer': siteUrl || 'https://github.com/badlogic/x-agent',
-					'X-Title': siteName || 'X-Agent',
-					...headers,
-				},
-				body: JSON.stringify(requestBody),
-				signal: options.signal,
-			});
+	try {
+		const response = await fetch(`${baseUrl}/chat/completions`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${apiKey}`,
+				'HTTP-Referer': siteUrl || 'https://github.com/badlogic/x-agent',
+				'X-Title': siteName || 'X-Agent',
+				...headers,
+			},
+			body: JSON.stringify(requestBody),
+			signal,
+		});
 
-			if (!response.ok) {
-				const error = await response.json().catch(() => ({ error: response.statusText }));
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: response.statusText }));
+			
+			// Handle specific error cases
+			if (error.error?.code === 'invalid_api_key') {
+				throw new Error('Invalid OpenRouter API key');
+			} else if (error.error?.code === 'insufficient_quota') {
+				throw new Error('Insufficient OpenRouter credits');
+			} else if (error.error?.code === 'model_not_found') {
+				throw new Error(`Model not found: ${config.modelId}`);
+			} else {
 				throw new Error(`OpenRouter error: ${error.error?.message || response.statusText}`);
 			}
-
-			// Process SSE stream
-			await processSSEStream(response.body, stream, options);
-
-		} catch (error) {
-			handleStreamError(stream, error, options?.signal);
 		}
 
-		return stream;
-	};
+		// Invoke onPayload callback if provided
+		if (onPayload) {
+			const clonedResponse = response.clone();
+			clonedResponse.text().then(text => {
+				try {
+					onPayload(JSON.parse(text));
+				} catch (e) {
+					// Ignore parse errors
+				}
+			});
+		}
+
+		// Process SSE stream
+		await processSSEStream(response.body, stream, config);
+
+	} catch (error) {
+		handleStreamError(stream, error, signal);
+	}
+
+	return stream;
 }
 
 /**
- * Process SSE stream from OpenRouter
- * 
- * @param {ReadableStream} body - Response body stream
- * @param {any} stream - Event stream to push events to
- * @param {any} options - Stream options
+ * Process SSE stream with complete event handling
+ * @param {ReadableStream} body 
+ * @param {any} stream 
+ * @param {OpenRouterConfig} config 
  */
-async function processSSEStream(body, stream, options) {
+async function processSSEStream(body, stream, config) {
 	const reader = body.getReader();
 	const decoder = new TextDecoder();
 	let buffer = '';
 
-	// Track partial message for building up the response
 	const partialMessage = createAssistantMessage('');
+	let currentContentIndex = 0;
 
 	while (true) {
 		const { done, value } = await reader.read();
@@ -124,14 +187,12 @@ async function processSSEStream(body, stream, options) {
 
 		for (const line of lines) {
 			const trimmedLine = line.trim();
-			if (!trimmedLine || trimmedLine === 'data: [DONE]') {
-				continue;
-			}
+			if (!trimmedLine || trimmedLine === 'data: [DONE]') continue;
 
 			if (trimmedLine.startsWith('data: ')) {
 				try {
 					const chunk = JSON.parse(trimmedLine.slice(6));
-					processChunk(chunk, stream, partialMessage);
+					processChunk(chunk, stream, partialMessage, config);
 				} catch (e) {
 					// Skip invalid JSON
 				}
@@ -141,53 +202,44 @@ async function processSSEStream(body, stream, options) {
 }
 
 /**
- * Process a single SSE chunk and emit X-Agent compatible events
- * 
- * @param {any} chunk - SSE chunk from OpenRouter
- * @param {any} stream - Event stream
- * @param {any} partialMessage - Partial message being built
+ * Process chunk with full event support
  */
-function processChunk(chunk, stream, partialMessage) {
+function processChunk(chunk, stream, partialMessage, config) {
 	const choice = chunk.choices?.[0];
 	if (!choice) return;
 
 	const delta = choice.delta;
 	const finishReason = choice.finish_reason;
 
-	// Handle reasoning/thinking (OpenRouter specific)
-	if (delta.reasoning) {
-		handleThinkingDelta(delta.reasoning, stream, partialMessage);
+	// Handle reasoning/thinking
+	if (delta.reasoning || delta.reasoning_content) {
+		handleThinking(delta.reasoning || delta.reasoning_content, stream, partialMessage);
 	}
 
 	// Handle text content
 	if (delta.content !== undefined) {
-		handleTextDelta(delta.content, stream, partialMessage);
+		handleText(delta.content, stream, partialMessage);
 	}
 
-	// Handle tool calls
+	// Handle tool calls with full validation
 	if (delta.tool_calls) {
-		handleToolCallDelta(delta.tool_calls, stream, partialMessage, finishReason);
+		handleToolCalls(delta.tool_calls, stream, partialMessage, finishReason, config);
 	}
 
-	// Handle stream end
+	// Handle finish
 	if (finishReason) {
-		handleFinishReason(finishReason, chunk.usage, stream, partialMessage);
+		handleFinish(finishReason, chunk.usage, stream, partialMessage);
 	}
 }
 
 /**
- * Handle thinking/reasoning delta
- * @param {string} reasoning - Reasoning text
- * @param {any} stream - Event stream
- * @param {any} partialMessage - Partial message
+ * Handle thinking events with all event types
  */
-function handleThinkingDelta(reasoning, stream, partialMessage) {
-	// Check if we already have a thinking block
-	let thinkingBlock = partialMessage.content.find((c) => c.type === 'thinking');
+function handleThinking(reasoning, stream, partialMessage) {
+	let thinkingBlock = partialMessage.content.find(c => c.type === 'thinking');
 	
 	if (!thinkingBlock) {
-		// Create new thinking block
-		thinkingBlock = { type: 'thinking', thinking: '' };
+		thinkingBlock = { type: 'thinking', thinking: '', thinkingSignature: null };
 		partialMessage.content.push(thinkingBlock);
 		
 		stream.push({
@@ -202,27 +254,22 @@ function handleThinkingDelta(reasoning, stream, partialMessage) {
 
 	stream.push({
 		type: 'thinking_delta',
-		contentIndex: partialMessage.content.findIndex((c) => c.type === 'thinking'),
+		contentIndex: partialMessage.content.findIndex(c => c.type === 'thinking'),
 		delta: reasoning,
 		partial: { ...partialMessage },
 	});
 }
 
 /**
- * Handle text delta
- * @param {string} content - Text content
- * @param {any} stream - Event stream
- * @param {any} partialMessage - Partial message
+ * Handle text events with all event types
  */
-function handleTextDelta(content, stream, partialMessage) {
+function handleText(content, stream, partialMessage) {
 	if (!content) return;
 
-	// Check if we already have a text block
-	let textBlock = partialMessage.content.find((c) => c.type === 'text');
+	let textBlock = partialMessage.content.find(c => c.type === 'text');
 
 	if (!textBlock) {
-		// Create new text block
-		textBlock = { type: 'text', text: '' };
+		textBlock = { type: 'text', text: '', textSignature: null };
 		partialMessage.content.push(textBlock);
 
 		stream.push({
@@ -232,35 +279,32 @@ function handleTextDelta(content, stream, partialMessage) {
 		});
 	}
 
+	const prevText = textBlock.text;
 	textBlock.text += content;
 
 	stream.push({
 		type: 'text_delta',
-		contentIndex: partialMessage.content.findIndex((c) => c.type === 'text'),
+		contentIndex: partialMessage.content.findIndex(c => c.type === 'text'),
 		delta: content,
 		partial: { ...partialMessage },
 	});
 }
 
 /**
- * Handle tool call delta
- * @param {any[]} toolCalls - Tool call deltas
- * @param {any} stream - Event stream
- * @param {any} partialMessage - Partial message
- * @param {string} finishReason - Finish reason
+ * Handle tool calls with validation and all event types
  */
-function handleToolCallDelta(toolCalls, stream, partialMessage, finishReason) {
+function handleToolCalls(toolCalls, stream, partialMessage, finishReason, config) {
 	for (const toolDelta of toolCalls) {
-		const index = toolDelta.index ?? 0;
+		const index = toolDelta.index ?? partialMessage.content.filter(c => c.type === 'toolCall').length;
 
-		// Ensure we have enough tool call slots
+		// Ensure tool call slot exists
 		while (partialMessage.content.length <= index) {
 			partialMessage.content.push({ type: 'toolCall', id: '', name: '', arguments: {}, partialJson: '' });
 		}
 
 		const existingToolCall = partialMessage.content[index];
 
-		// Handle tool call start
+		// Tool call start
 		if (toolDelta.id && !existingToolCall.id) {
 			existingToolCall.id = toolDelta.id;
 			existingToolCall.name = toolDelta.function?.name || '';
@@ -276,14 +320,14 @@ function handleToolCallDelta(toolCalls, stream, partialMessage, finishReason) {
 			});
 		}
 
-		// Handle tool call arguments delta
+		// Tool call delta with partial JSON parsing
 		if (toolDelta.function?.arguments) {
 			existingToolCall.partialJson += toolDelta.function.arguments;
 
 			try {
 				existingToolCall.arguments = JSON.parse(existingToolCall.partialJson) || {};
 			} catch (e) {
-				// Partial JSON, keep accumulating
+				// Partial JSON - keep accumulating
 			}
 
 			stream.push({
@@ -294,8 +338,24 @@ function handleToolCallDelta(toolCalls, stream, partialMessage, finishReason) {
 			});
 		}
 
-		// Handle tool call end
-		if (finishReason === 'tool_calls') {
+		// Tool call end with validation
+		if (finishReason === 'tool_calls' && existingToolCall.id && existingToolCall.name) {
+			// Validate against tools if available
+			if (config.tools && config.tools.length > 0) {
+				const tool = config.tools.find(t => t.name === existingToolCall.name);
+				if (tool) {
+					try {
+						existingToolCall.arguments = validateToolArguments(tool, {
+							id: existingToolCall.id,
+							name: existingToolCall.name,
+							arguments: existingToolCall.arguments,
+						});
+					} catch (e) {
+						// Validation failed - will be handled by agent
+					}
+				}
+			}
+
 			stream.push({
 				type: 'toolcall_end',
 				contentIndex: index,
@@ -312,54 +372,78 @@ function handleToolCallDelta(toolCalls, stream, partialMessage, finishReason) {
 }
 
 /**
- * Handle finish reason
- * @param {string} finishReason - Finish reason
- * @param {any} usage - Usage statistics
- * @param {any} stream - Event stream
- * @param {any} partialMessage - Partial message
+ * Handle finish with usage and all event types
  */
-function handleFinishReason(finishReason, usage, stream, partialMessage) {
+function handleFinish(finishReason, usage, stream, partialMessage) {
 	partialMessage.stopReason = finishReason === 'tool_calls' ? 'toolUse' : finishReason;
 
-	// Add usage if available
+	// Add usage statistics
 	if (usage) {
 		partialMessage.usage = {
 			input: usage.prompt_tokens || 0,
 			output: usage.completion_tokens || 0,
-			cacheRead: 0,
+			cacheRead: usage.prompt_tokens_details?.cached_tokens || 0,
 			cacheWrite: 0,
 			totalTokens: usage.total_tokens || 0,
-			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+			cost: {
+				input: 0,
+				output: 0,
+				cacheRead: 0,
+				cacheWrite: 0,
+				total: 0,
+			},
 		};
+
+		// Add logprobs if available
+		if (usage.completion_tokens_details) {
+			partialMessage.usage.details = usage.completion_tokens_details;
+		}
 	}
 
-	// Emit done or error event
+	// Emit text_end for all text blocks
+	partialMessage.content.forEach((block, index) => {
+		if (block.type === 'text') {
+			stream.push({
+				type: 'text_end',
+				contentIndex: index,
+				content: block.text,
+				contentSignature: block.textSignature,
+				partial: { ...partialMessage },
+			});
+		} else if (block.type === 'thinking') {
+			stream.push({
+				type: 'thinking_end',
+				contentIndex: index,
+				content: block.thinking,
+				contentSignature: block.thinkingSignature,
+				partial: { ...partialMessage },
+			});
+		}
+	});
+
+	// Emit done or error
 	if (finishReason === 'stop' || finishReason === 'tool_calls' || finishReason === 'length') {
 		stream.push({
 			type: 'done',
 			reason: partialMessage.stopReason,
 			message: { ...partialMessage },
 		});
-	} else if (finishReason === 'error') {
+	} else {
+		const errorMsg = {
+			...partialMessage,
+			errorMessage: finishReason === 'content_filter' ? 'Content filtered' : 'Unknown error',
+		};
+		
 		stream.push({
 			type: 'error',
-			reason: 'error',
-			error: { ...partialMessage, errorMessage: 'Unknown error' },
-		});
-	} else if (finishReason === 'content_filter') {
-		stream.push({
-			type: 'error',
-			reason: 'error',
-			error: { ...partialMessage, errorMessage: 'Content filtered' },
+			reason: finishReason === 'error' ? 'error' : 'aborted',
+			error: errorMsg,
 		});
 	}
 }
 
 /**
  * Handle stream errors
- * @param {any} stream - Event stream
- * @param {Error} error - Error
- * @param {AbortSignal} [signal] - Abort signal
  */
 function handleStreamError(stream, error, signal) {
 	if (error?.name === 'AbortError' || signal?.aborted) {
