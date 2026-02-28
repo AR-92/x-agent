@@ -35,7 +35,8 @@
 		"tool-execution",
 		"state-management",
 		"browser",
-		"esm"
+		"esm",
+		"bun"
 	],
 	"author": "Mario Zechner",
 	"license": "MIT",
@@ -48,5 +49,8 @@
 	},
 	"devDependencies": {
 		"vite": "^6.0.0"
-	}
+	},
+	"trustedDependencies": [
+		"vite"
+	]
 }
