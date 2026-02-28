@@ -12,7 +12,7 @@
 - **Event streaming** - Real-time UI updates via event subscription
 - **Steering & Follow-up** - Interrupt or extend agent workflows mid-execution
 - **Browser ready** - Works via CDN with no build step
-- **Bun powered** - Fast testing and building with Bun
+- **Bun powered** - Fast testing and building with Bun (no extra dependencies)
 
 ## Installation
 
@@ -378,6 +378,26 @@ test/
 └── utils/
     ├── calculate.js        # Calculator tool
     └── get-current-time.js # Time tool
+```
+
+## Project Structure
+
+```
+src/
+├── index.js              # Main entry point
+├── types.js              # JSDoc type definitions
+├── proxy.js              # Proxy streaming utility
+├── agent/                # Agent module
+│   ├── index.js          # Module exports
+│   ├── agent.js          # Main Agent class
+│   ├── state.js          # State creation
+│   ├── events.js         # EventManager class
+│   └── queues.js         # QueueManager (steering/follow-up)
+└── loop/                 # Agent loop module
+    ├── index.js          # Module exports
+    ├── loop.js           # Main loop logic
+    ├── stream.js         # Stream creation
+    └── tools.js          # Tool execution
 ```
 
 ## Proxy Usage
