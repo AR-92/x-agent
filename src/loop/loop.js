@@ -1,32 +1,14 @@
-/**
- * Agent loop that works with AgentMessage throughout.
- * Transforms to Message[] only at the LLM call boundary.
- */
-
-import {
-	EventStream,
-	streamSimple,
-	validateToolArguments,
-} from "@mariozechner/pi-ai";
+import { streamSimple } from "@mariozechner/pi-ai";
+import { createAgentStream } from "./stream.js";
+import { executeToolCalls } from "./tools.js";
 
 /**
- * Create an agent event stream
- * @returns {EventStream<any, any>}
- */
-function createAgentStream() {
-	return new EventStream(
-		(event) => event.type === "agent_end",
-		(event) => (event.type === "agent_end" ? event.messages : []),
-	);
-}
-
-/**
- * Start an agent loop with a new prompt message.
- * @param {import("./types.js").AgentMessage[]} prompts
- * @param {import("./types.js").AgentContext} context
- * @param {import("./types.js").AgentLoopConfig} config
+ * Start an agent loop with a new prompt message
+ * @param {import("../types.js").AgentMessage[]} prompts
+ * @param {import("../types.js").AgentContext} context
+ * @param {import("../types.js").AgentLoopConfig} config
  * @param {AbortSignal} [signal]
- * @param {import("./types.js").StreamFn} [streamFn]
+ * @param {import("../types.js").StreamFn} [streamFn]
  */
 export function agentLoop(prompts, context, config, signal, streamFn) {
 	const stream = createAgentStream();
@@ -52,11 +34,11 @@ export function agentLoop(prompts, context, config, signal, streamFn) {
 }
 
 /**
- * Continue an agent loop from the current context without adding a new message.
- * @param {import("./types.js").AgentContext} context
- * @param {import("./types.js").AgentLoopConfig} config
+ * Continue an agent loop from the current context without adding a new message
+ * @param {import("../types.js").AgentContext} context
+ * @param {import("../types.js").AgentLoopConfig} config
  * @param {AbortSignal} [signal]
- * @param {import("./types.js").StreamFn} [streamFn]
+ * @param {import("../types.js").StreamFn} [streamFn]
  */
 export function agentLoopContinue(context, config, signal, streamFn) {
 	if (context.messages.length === 0) {
@@ -83,13 +65,13 @@ export function agentLoopContinue(context, config, signal, streamFn) {
 }
 
 /**
- * Main loop logic shared by agentLoop and agentLoopContinue.
- * @param {import("./types.js").AgentContext} currentContext
- * @param {import("./types.js").AgentMessage[]} newMessages
- * @param {import("./types.js").AgentLoopConfig} config
+ * Main loop logic shared by agentLoop and agentLoopContinue
+ * @param {import("../types.js").AgentContext} currentContext
+ * @param {import("../types.js").AgentMessage[]} newMessages
+ * @param {import("../types.js").AgentLoopConfig} config
  * @param {AbortSignal} [signal]
- * @param {EventStream<any, any>} stream
- * @param {import("./types.js").StreamFn} [streamFn]
+ * @param {any} stream
+ * @param {import("../types.js").StreamFn} [streamFn]
  */
 async function runLoop(currentContext, newMessages, config, signal, stream, streamFn) {
 	let firstTurn = true;
@@ -181,12 +163,12 @@ async function runLoop(currentContext, newMessages, config, signal, stream, stre
 }
 
 /**
- * Stream an assistant response from the LLM.
- * @param {import("./types.js").AgentContext} context
- * @param {import("./types.js").AgentLoopConfig} config
+ * Stream an assistant response from the LLM
+ * @param {import("../types.js").AgentContext} context
+ * @param {import("../types.js").AgentLoopConfig} config
  * @param {AbortSignal} [signal]
- * @param {EventStream<any, any>} stream
- * @param {import("./types.js").StreamFn} [streamFn]
+ * @param {any} stream
+ * @param {import("../types.js").StreamFn} [streamFn]
  */
 async function streamAssistantResponse(context, config, signal, stream, streamFn) {
 	// Apply context transform if configured
@@ -267,133 +249,4 @@ async function streamAssistantResponse(context, config, signal, stream, streamFn
 	}
 
 	return await response.result();
-}
-
-/**
- * Execute tool calls from an assistant message.
- * @param {import("./types.js").AgentTool<any>[]} [tools]
- * @param {any} assistantMessage
- * @param {AbortSignal} [signal]
- * @param {EventStream<any, any>} stream
- * @param {() => Promise<any>} [getSteeringMessages]
- */
-async function executeToolCalls(tools, assistantMessage, signal, stream, getSteeringMessages) {
-	const toolCalls = assistantMessage.content.filter((c) => c.type === "toolCall");
-	const results = [];
-	let steeringMessages;
-
-	for (let index = 0; index < toolCalls.length; index++) {
-		const toolCall = toolCalls[index];
-		const tool = tools?.find((t) => t.name === toolCall.name);
-
-		stream.push({
-			type: "tool_execution_start",
-			toolCallId: toolCall.id,
-			toolName: toolCall.name,
-			args: toolCall.arguments,
-		});
-
-		let result;
-		let isError = false;
-
-		try {
-			if (!tool) throw new Error(`Tool ${toolCall.name} not found`);
-
-			const validatedArgs = validateToolArguments(tool, toolCall);
-
-			result = await tool.execute(toolCall.id, validatedArgs, signal, (partialResult) => {
-				stream.push({
-					type: "tool_execution_update",
-					toolCallId: toolCall.id,
-					toolName: toolCall.name,
-					args: toolCall.arguments,
-					partialResult,
-				});
-			});
-		} catch (e) {
-			result = {
-				content: [{ type: "text", text: e instanceof Error ? e.message : String(e) }],
-				details: {},
-			};
-			isError = true;
-		}
-
-		stream.push({
-			type: "tool_execution_end",
-			toolCallId: toolCall.id,
-			toolName: toolCall.name,
-			result,
-			isError,
-		});
-
-		const toolResultMessage = {
-			role: "toolResult",
-			toolCallId: toolCall.id,
-			toolName: toolCall.name,
-			content: result.content,
-			details: result.details,
-			isError,
-			timestamp: Date.now(),
-		};
-
-		results.push(toolResultMessage);
-		stream.push({ type: "message_start", message: toolResultMessage });
-		stream.push({ type: "message_end", message: toolResultMessage });
-
-		// Check for steering messages - skip remaining tools if user interrupted
-		if (getSteeringMessages) {
-			const steering = await getSteeringMessages();
-			if (steering.length > 0) {
-				steeringMessages = steering;
-				const remainingCalls = toolCalls.slice(index + 1);
-				for (const skipped of remainingCalls) {
-					results.push(skipToolCall(skipped, stream));
-				}
-				break;
-			}
-		}
-	}
-
-	return { toolResults: results, steeringMessages };
-}
-
-/**
- * Skip a tool call and return an error result
- * @param {any} toolCall
- * @param {EventStream<any, any>} stream
- */
-function skipToolCall(toolCall, stream) {
-	const result = {
-		content: [{ type: "text", text: "Skipped due to queued user message." }],
-		details: {},
-	};
-
-	stream.push({
-		type: "tool_execution_start",
-		toolCallId: toolCall.id,
-		toolName: toolCall.name,
-		args: toolCall.arguments,
-	});
-	stream.push({
-		type: "tool_execution_end",
-		toolCallId: toolCall.id,
-		toolName: toolCall.name,
-		result,
-		isError: true,
-	});
-
-	const toolResultMessage = {
-		role: "toolResult",
-		toolCallId: toolCall.id,
-		toolName: toolCall.name,
-		content: result.content,
-		details: {},
-		isError: true,
-		timestamp: Date.now(),
-	};
-
-	stream.push({ type: "message_start", message: toolResultMessage });
-	stream.push({ type: "message_end", message: toolResultMessage });
-
-	return toolResultMessage;
 }

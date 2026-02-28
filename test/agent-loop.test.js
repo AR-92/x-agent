@@ -1,6 +1,6 @@
 import { EventStream } from "@mariozechner/pi-ai";
 import { describe, expect, it } from "bun:test";
-import { agentLoop, agentLoopContinue } from "../src/agent-loop.js";
+import { agentLoop, agentLoopContinue } from "../src/loop/index.js";
 
 // Mock stream for testing
 class MockAssistantStream extends EventStream {
