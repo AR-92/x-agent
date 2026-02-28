@@ -20,8 +20,8 @@
 	],
 	"scripts": {
 		"clean": "rm -rf dist",
-		"build": "vite build",
-		"dev": "vite build --watch",
+		"build": "bun run build.js",
+		"dev": "bun run build.js",
 		"test": "bun test --coverage",
 		"test:unit": "bun test"
 	},
@@ -47,10 +47,5 @@
 	"engines": {
 		"node": ">=20.0.0"
 	},
-	"devDependencies": {
-		"vite": "^6.0.0"
-	},
-	"trustedDependencies": [
-		"vite"
-	]
+	"devDependencies": {}
 }
