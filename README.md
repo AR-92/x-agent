@@ -306,9 +306,6 @@ bun install
 # Build for production
 bun run build
 
-# Development watch mode
-bun run dev
-
 # Run tests
 bun test
 
@@ -325,9 +322,6 @@ npm install
 # Build for production
 npm run build
 
-# Development watch mode
-npm run dev
-
 # Run tests
 npm test
 ```
@@ -338,10 +332,12 @@ After building, you'll find these files in `dist/`:
 
 | File | Description | Size |
 |------|-------------|------|
-| `x-agent.min.js` | Minified ESM bundle | ~26 kB |
+| `x-agent.min.js` | Minified ESM bundle | ~16 kB (gzip: 4.6 kB) |
 | `x-agent.min.js.map` | Source map for ESM | - |
-| `x-agent.umd.min.js` | Minified UMD bundle | ~16 kB |
+| `x-agent.umd.min.js` | Minified UMD bundle | ~16 kB (gzip: 4.9 kB) |
 | `x-agent.umd.min.js.map` | Source map for UMD | - |
+
+Built with **Bun.build()** - fast, no extra dependencies needed.
 
 ## Testing
 
