@@ -1,5 +1,5 @@
 import { build } from "bun";
-import { mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, readFileSync, writeFileSync, copyFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
@@ -39,9 +39,10 @@ export const CONFIG = {
 writeFileSync(configPath, configContent);
 console.log('Generated config.js from .env\n');
 
-// Ensure dist directory exists
+// Ensure dist and examples/assets/js directories exist
 try {
 	mkdirSync("dist", { recursive: true });
+	mkdirSync("examples/assets/js", { recursive: true });
 } catch (e) {}
 
 console.log("Building X-Agent with Bun...\n");
@@ -108,12 +109,21 @@ const { gzip } = await import("zlib");
 const { promisify } = await import("util");
 const gzipAsync = promisify(gzip);
 
+console.log("");
+
 for (const file of ["x-agent.min.js", "x-agent.umd.min.js", "x-agent-openrouter.min.js", "x-agent-openrouter.umd.min.js"]) {
 	const content = await Bun.file(`dist/${file}`).arrayBuffer();
 	const gzipped = await gzipAsync(Buffer.from(content));
 	const size = statSync(`dist/${file}`).size;
 	const gzippedSize = gzipped.length;
 	console.log(`${file}: ${(size / 1024).toFixed(2)} kB (gzip: ${(gzippedSize / 1024).toFixed(2)} kB)`);
+}
+
+// Copy built files to examples/assets/js/
+console.log("\nCopying to examples/assets/js/...");
+for (const file of ["x-agent.min.js", "x-agent.umd.min.js", "x-agent-openrouter.min.js", "x-agent-openrouter.umd.min.js"]) {
+	copyFileSync(`dist/${file}`, `examples/assets/js/${file}`);
+	console.log(`  ✓ Copied ${file}`);
 }
 
 console.log("\n✓ Build complete!");
