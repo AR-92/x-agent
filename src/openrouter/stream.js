@@ -3,10 +3,14 @@
  * Complete implementation matching pi-ai EventStream with all event types
  */
 
+import { createLogger } from '../logger.js';
+
+const log = createLogger('OpenRouter.Stream');
+
 /**
  * Create an OpenRouter event stream compatible with X-Agent
  * Emits all event types: start, text_*, thinking_*, toolcall_*, done, error
- * 
+ *
  * @returns {any} EventStream
  */
 export function createOpenRouterStream() {
@@ -14,7 +18,7 @@ export function createOpenRouterStream() {
 	let result = null;
 	let resultResolver = null;
 	let resultRejector = null;
-	
+
 	const resultPromise = new Promise((resolve, reject) => {
 		resultResolver = resolve;
 		resultRejector = reject;
@@ -36,7 +40,7 @@ export function createOpenRouterStream() {
 				try {
 					listener(event);
 				} catch (e) {
-					console.error('Event listener error:', e);
+					log.error('Event listener error:', e);
 				}
 			}
 

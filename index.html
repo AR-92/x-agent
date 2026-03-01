@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>X-Agent + OpenRouter Test</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #00d9ff;
+    }
+    .config-section {
+      background: #16213e;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .config-section h2 {
+      margin-bottom: 15px;
+      color: #00d9ff;
+      font-size: 1.2em;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #0f3460;
+      border-radius: 4px;
+      background: #1a1a2e;
+      color: #eee;
+      font-size: 14px;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #00d9ff;
+    }
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+    .btn {
+      background: #00d9ff;
+      color: #1a1a2e;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    .btn:hover {
+      background: #00b8d9;
+    }
+    .btn:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+    .btn-danger {
+      background: #e74c3c;
+    }
+    .btn-danger:hover {
+      background: #c0392b;
+    }
+    .btn-secondary {
+      background: #6c757d;
+    }
+    .btn-secondary:hover {
+      background: #5a6268;
+    }
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 900px) {
+      .main-content {
+        grid-template-columns: 1fr;
+      }
+    }
+    .chat-section, .events-section {
+      background: #16213e;
+      border-radius: 8px;
+      padding: 20px;
+      min-height: 500px;
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-section h2, .events-section h2 {
+      margin-bottom: 15px;
+      color: #00d9ff;
+      font-size: 1.2em;
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      border: 1px solid #0f3460;
+      border-radius: 4px;
+      padding: 15px;
+      margin-bottom: 15px;
+      background: #1a1a2e;
+      min-height: 400px;
+    }
+    .message {
+      margin-bottom: 15px;
+      padding: 10px 15px;
+      border-radius: 8px;
+      max-width: 85%;
+    }
+    .message.user {
+      background: #0f3460;
+      margin-left: auto;
+      border-bottom-right-radius: 2px;
+    }
+    .message.assistant {
+      background: #1a5276;
+      border-bottom-left-radius: 2px;
+    }
+    .message.tool-result {
+      background: #2d4a22;
+      border: 1px solid #4a7c23;
+    }
+    .message.error {
+      background: #5c2323;
+      border: 1px solid #e74c3c;
+    }
+    .message-label {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 5px;
+    }
+    .message-content {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .thinking-block {
+      background: #2d2d44;
+      border-left: 3px solid #9b59b6;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .thinking-label {
+      color: #9b59b6;
+      font-size: 11px;
+      margin-bottom: 5px;
+    }
+    .tool-call-block {
+      background: #2d4a4a;
+      border-left: 3px solid #1abc9c;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+    }
+    .tool-call-label {
+      color: #1abc9c;
+      font-size: 11px;
+      margin-bottom: 5px;
+    }
+    .tool-call-args {
+      font-family: monospace;
+      font-size: 12px;
+      background: #1a1a2e;
+      padding: 8px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .chat-input {
+      display: flex;
+      gap: 10px;
+    }
+    .chat-input textarea {
+      flex: 1;
+      min-height: 60px;
+    }
+    .chat-input-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .events-log {
+      flex: 1;
+      overflow-y: auto;
+      border: 1px solid #0f3460;
+      border-radius: 4px;
+      padding: 10px;
+      background: #1a1a2e;
+      font-family: monospace;
+      font-size: 12px;
+      min-height: 400px;
+    }
+    .event {
+      padding: 5px 8px;
+      margin-bottom: 5px;
+      border-radius: 4px;
+      border-left: 3px solid;
+    }
+    .event.agent_start { border-color: #00d9ff; background: rgba(0, 217, 255, 0.1); }
+    .event.agent_end { border-color: #2ecc71; background: rgba(46, 204, 113, 0.1); }
+    .event.turn_start { border-color: #f39c12; background: rgba(243, 156, 18, 0.1); }
+    .event.turn_end { border-color: #27ae60; background: rgba(39, 174, 96, 0.1); }
+    .event.message_start { border-color: #3498db; background: rgba(52, 152, 219, 0.1); }
+    .event.message_update { border-color: #2980b9; background: rgba(41, 128, 185, 0.1); }
+    .event.message_end { border-color: #1abc9c; background: rgba(26, 188, 156, 0.1); }
+    .event.text_start { border-color: #9b59b6; }
+    .event.text_delta { border-color: #8e44ad; }
+    .event.text_end { border-color: #9b59b6; }
+    .event.thinking_start { border-color: #e74c3c; }
+    .event.thinking_delta { border-color: #c0392b; }
+    .event.thinking_end { border-color: #e74c3c; }
+    .event.toolcall_start { border-color: #1abc9c; }
+    .event.toolcall_delta { border-color: #16a085; }
+    .event.toolcall_end { border-color: #1abc9c; }
+    .event.tool_execution_start { border-color: #f39c12; }
+    .event.tool_execution_update { border-color: #e67e22; }
+    .event.tool_execution_end { border-color: #f39c12; }
+    .event.done { border-color: #2ecc71; background: rgba(46, 204, 113, 0.1); }
+    .event.error { border-color: #e74c3c; background: rgba(231, 76, 60, 0.2); }
+    .event-type {
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    .event-details {
+      color: #888;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 15px;
+      text-align: center;
+    }
+    .status.idle { background: #2d4a22; color: #2ecc71; }
+    .status.running { background: #4a3a2d; color: #f39c12; }
+    .status.error { background: #5c2323; color: #e74c3c; }
+    .clear-btn {
+      margin-top: 10px;
+    }
+    .usage-stats {
+      background: #0f3460;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+    .usage-stats strong {
+      color: #00d9ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🤖 X-Agent + OpenRouter Test</h1>
+
+    <!-- Configuration -->
+    <div class="config-section">
+      <h2>⚙️ Configuration</h2>
+      <form onsubmit="return false;">
+        <div class="form-group">
+          <label for="apiKey">OpenRouter API Key</label>
+          <input type="password" id="apiKey" placeholder="sk-or-..." value="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" autoComplete="off" />
+        </div>
+      </form>
+      <div class="form-group">
+        <label for="model">Model</label>
+        <input type="text" id="modelSearch" placeholder="Search models..." style="margin-bottom: 5px;" />
+        <select id="model" size="10">
+          <option value="">Loading models...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="systemPrompt">System Prompt</label>
+        <textarea id="systemPrompt" placeholder="You are a helpful assistant...">You are a helpful AI assistant. Be concise but thorough. When asked to perform calculations or use tools, show your work clearly.</textarea>
+      </div>
+      <div class="form-group">
+        <label for="thinkingLevel">Thinking Level</label>
+        <select id="thinkingLevel">
+          <option value="off">Off</option>
+          <option value="minimal">Minimal</option>
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+          <option value="xhigh">Extra High</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Chat Section -->
+      <div class="chat-section">
+        <h2>💬 Chat</h2>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input">
+          <textarea id="userInput" placeholder="Type your message... (Try: 'Calculate 25 * 47', 'What is the capital of France?', or 'Count from 1 to 10')"></textarea>
+          <div class="chat-input-buttons">
+            <button class="btn" id="sendBtn" onclick="sendMessage()">Send</button>
+            <button class="btn btn-danger" id="abortBtn" onclick="abortRequest()" disabled>Abort</button>
+          </div>
+        </div>
+        <div class="controls">
+          <button class="btn btn-secondary" onclick="clearChat()">Clear Chat</button>
+          <button class="btn btn-secondary" onclick="resetAgent()">Reset Agent</button>
+          <button class="btn btn-secondary" onclick="testSteering()">Test Steering</button>
+        </div>
+        <div class="status idle" id="status">Status: Idle</div>
+        <div class="usage-stats" id="usageStats" style="display: none;"></div>
+      </div>
+
+      <!-- Events Section -->
+      <div class="events-section">
+        <h2>📊 Event Log</h2>
+        <div class="events-log" id="eventsLog"></div>
+        <button class="btn btn-secondary clear-btn" onclick="clearEvents()">Clear Events</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import maps for browser compatibility -->
+  <script type="importmap">
+  {
+    "imports": {
+      "@mariozechner/pi-ai": "https://cdn.jsdelivr.net/npm/@mariozechner/pi-ai@0.55.0/+esm"
+    }
+  }
+  </script>
+
+  <script type="module">
+    // Import Agent from x-agent dist (uses import map for pi-ai)
+    import { Agent } from './dist/x-agent.min.js';
+
+    // Import OpenRouter module from local dist (browser-compatible)
+    // Includes logger, models, and stream functions
+    import { openRouterStream, getModel, getModels, createLogger, setLogLevel, LogLevel } from './dist/x-agent-openrouter.min.js';
+    
+    // Enable DEBUG logging for development
+    setLogLevel(LogLevel.DEBUG);
+    
+    // Create UI logger
+    const log = createLogger('UI');
+
+    let agent = null;
+    let abortController = null;
+
+    // Initialize agent
+    function initAgent() {
+      const apiKey = document.getElementById('apiKey').value.trim();
+      if (!apiKey) {
+        alert('Please enter your OpenRouter API key');
+        return null;
+      }
+
+      const modelId = document.getElementById('model').value;
+      if (!modelId) {
+        alert('Please select a model');
+        return null;
+      }
+      
+      const systemPrompt = document.getElementById('systemPrompt').value;
+      const thinkingLevel = document.getElementById('thinkingLevel').value;
+
+      log.info('Initializing agent with model:', modelId);
+
+      agent = new Agent({
+        initialState: {
+          systemPrompt: systemPrompt,
+          model: getModel(modelId),
+          thinkingLevel: thinkingLevel,
+          tools: [calculatorTool, currentTimeTool],
+        },
+        streamFn: async (model, context, options) => {
+          const apiKey = document.getElementById('apiKey').value.trim();
+          const modelId = document.getElementById('model').value;
+          
+          log.info('OpenRouter stream called with model:', modelId);
+          
+          return openRouterStream({
+            ...options,
+            apiKey: apiKey,
+            modelId: modelId,
+            siteUrl: window.location.origin,
+            siteName: 'X-Agent Test',
+          }, context);
+        },
+      });
+
+      // Subscribe to events
+      agent.subscribe(handleAgentEvent);
+
+      return agent;
+    }
+
+    // Calculator tool for testing tool execution
+    const calculatorTool = {
+      name: 'calculator',
+      label: 'Calculator',
+      description: 'Perform mathematical calculations. Use this for any math problems.',
+      parameters: {
+        type: 'object',
+        properties: {
+          expression: {
+            type: 'string',
+            description: 'The mathematical expression to evaluate (e.g., "25 * 47")',
+          },
+        },
+        required: ['expression'],
+      },
+      execute: async (toolCallId, params, signal, onUpdate) => {
+        onUpdate?.({
+          content: [{ type: 'text', text: `Calculating: ${params.expression}...` }],
+          details: { expression: params.expression },
+        });
+
+        try {
+          // Safe evaluation of mathematical expressions
+          const result = evaluateMath(params.expression);
+          return {
+            content: [{ type: 'text', text: `Result: ${result}` }],
+            details: { expression: params.expression, result },
+          };
+        } catch (error) {
+          throw new Error(`Calculation error: ${error.message}`);
+        }
+      },
+    };
+
+    // Safe math expression evaluator
+    function evaluateMath(expression) {
+      // Only allow safe mathematical characters
+      if (!/^[\d\s+\-*/().%^]+$/.test(expression)) {
+        throw new Error('Invalid characters in expression');
+      }
+      // Use Function constructor for safer eval
+      return Function('"use strict"; return (' + expression + ')')();
+    }
+
+    // Current time tool
+    const currentTimeTool = {
+      name: 'get_current_time',
+      label: 'Get Current Time',
+      description: 'Get the current date and time',
+      parameters: {
+        type: 'object',
+        properties: {},
+      },
+      execute: async () => {
+        const now = new Date();
+        return {
+          content: [{ type: 'text', text: `Current time: ${now.toLocaleString()}` }],
+          details: { timestamp: now.toISOString() },
+        };
+      },
+    };
+
+    // Handle agent events
+    function handleAgentEvent(event) {
+      log.debug('Received event:', event.type, event);
+      logEvent(event);
+
+      switch (event.type) {
+        case 'agent_start':
+          log.info('Agent started');
+          updateStatus('running');
+          break;
+
+        case 'agent_end':
+          log.info('Agent completed with', event.messages?.length, 'messages');
+          // Update usage from the last assistant message
+          const lastMessage = event.messages?.[event.messages.length - 1];
+          if (lastMessage?.usage) {
+            updateUsageStats(lastMessage.usage);
+          }
+          updateStatus('idle');
+          break;
+
+        case 'message_update':
+          if (event.assistantMessageEvent) {
+            updateAssistantMessage(event.assistantMessageEvent);
+          }
+          break;
+
+        case 'message_end':
+          log.debug('Message ended, role:', event.message?.role);
+          if (event.message.role === 'assistant') {
+            finalizeAssistantMessage(event.message);
+          } else if (event.message.role === 'toolResult') {
+            addToolResultMessage(event.message);
+          }
+          break;
+
+        case 'done':
+          log.debug('Received done event:', event);
+          // Update usage stats from done event message
+          if (event.message?.usage) {
+            updateUsageStats(event.message.usage);
+          }
+          // Check if response was empty
+          if (event.message?.content?.length === 0) {
+            log.warn('Empty response from model');
+            addErrorMessage('Model returned empty response. Try a different model.');
+            updateStatus('error');
+          }
+          break;
+
+        case 'turn_end':
+          log.debug('Turn ended');
+          // Update usage from turn's assistant message
+          if (event.message?.usage) {
+            updateUsageStats(event.message.usage);
+          }
+          break;
+
+        case 'tool_execution_start':
+          log.info('Tool execution started:', event.toolName);
+          showToolExecution(event.toolName, event.args);
+          break;
+
+        case 'tool_execution_end':
+          log.info('Tool execution ended:', event.toolName, 'isError:', event.isError);
+          hideToolExecution();
+          break;
+
+        case 'error':
+          updateStatus('error');
+          const errorMsg = event.error?.errorMessage || event.error?.message || 'An error occurred';
+          log.error('Agent error:', event.error);
+          
+          // Get detailed error from OpenRouter if available
+          let detailedError = errorMsg;
+          if (event.error?.rawError) {
+            detailedError += ` - ${event.error.rawError}`;
+          }
+          
+          addErrorMessage(detailedError);
+          break;
+      }
+    }
+
+    // Update status display
+    function updateStatus(status) {
+      const statusEl = document.getElementById('status');
+      const abortBtn = document.getElementById('abortBtn');
+      const sendBtn = document.getElementById('sendBtn');
+
+      statusEl.className = `status ${status}`;
+      statusEl.textContent = `Status: ${status.charAt(0).toUpperCase() + status.slice(1)}`;
+
+      abortBtn.disabled = status !== 'running';
+      sendBtn.disabled = status === 'running';
+    }
+
+    // Update usage stats
+    function updateUsageStats(usage) {
+      if (!usage) return;
+
+      const statsEl = document.getElementById('usageStats');
+      statsEl.innerHTML = `
+        <strong>📊 Usage:</strong>
+        Input: ${usage.input} tokens |
+        Output: ${usage.output} tokens |
+        Total: ${usage.totalTokens} tokens
+        ${usage.cacheRead ? `| Cache: ${usage.cacheRead}` : ''}
+      `;
+      statsEl.style.display = 'block';
+    }
+
+    // Add message to chat
+    function addMessage(role, content, extraHtml = '') {
+      const chatMessages = document.getElementById('chatMessages');
+      const messageEl = document.createElement('div');
+      messageEl.className = `message ${role}`;
+      messageEl.innerHTML = `
+        <div class="message-label">${role === 'user' ? '👤 You' : role === 'assistant' ? '🤖 Assistant' : '🔧 Tool Result'}</div>
+        <div class="message-content">${escapeHtml(content)}${extraHtml}</div>
+      `;
+      chatMessages.appendChild(messageEl);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      return messageEl;
+    }
+
+    // Add assistant message placeholder
+    function addAssistantMessagePlaceholder() {
+      const chatMessages = document.getElementById('chatMessages');
+      const messageEl = document.createElement('div');
+      messageEl.className = 'message assistant';
+      messageEl.id = 'assistantMessagePlaceholder';
+      messageEl.innerHTML = `
+        <div class="message-label">🤖 Assistant</div>
+        <div class="message-content"></div>
+      `;
+      chatMessages.appendChild(messageEl);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      return messageEl;
+    }
+
+    // Update assistant message during streaming
+    function updateAssistantMessage(event) {
+      let placeholder = document.getElementById('assistantMessagePlaceholder');
+      if (!placeholder) {
+        placeholder = addAssistantMessagePlaceholder();
+      }
+
+      const contentEl = placeholder.querySelector('.message-content');
+      let html = '';
+
+      // Build content from event.partial
+      if (event.partial?.content) {
+        for (const block of event.partial.content) {
+          if (block.type === 'text') {
+            html += escapeHtml(block.text);
+          } else if (block.type === 'thinking') {
+            html += `
+              <div class="thinking-block">
+                <div class="thinking-label">🧠 Thinking:</div>
+                <div>${escapeHtml(block.thinking)}</div>
+              </div>
+            `;
+          } else if (block.type === 'toolCall') {
+            html += `
+              <div class="tool-call-block">
+                <div class="tool-call-label">🔧 Calling: ${block.name}</div>
+                <div class="tool-call-args">${escapeHtml(JSON.stringify(block.arguments, null, 2))}</div>
+              </div>
+            `;
+          }
+        }
+      }
+
+      contentEl.innerHTML = html;
+      placeholder.scrollTop = placeholder.scrollHeight;
+
+      // Update usage if available
+      if (event.partial?.usage) {
+        updateUsageStats(event.partial.usage);
+      }
+    }
+
+    // Finalize assistant message
+    function finalizeAssistantMessage(message) {
+      const placeholder = document.getElementById('assistantMessagePlaceholder');
+      if (placeholder) {
+        placeholder.id = '';
+      }
+    }
+
+    // Add tool result message
+    function addToolResultMessage(message) {
+      const content = message.content
+        ?.map(block => block.type === 'text' ? block.text : '')
+        .join('\n') || 'No content';
+
+      addMessage('tool-result', content);
+    }
+
+    // Add error message
+    function addErrorMessage(error) {
+      addMessage('error', error);
+      // Also log to event log
+      logEvent({ type: 'error', reason: 'error' });
+    }
+
+    // Show tool execution
+    function showToolExecution(toolName, args) {
+      // Tool execution is shown in the assistant message via toolCall blocks
+    }
+
+    // Hide tool execution indicator
+    function hideToolExecution() {
+      // No-op, tool calls remain visible
+    }
+
+    // Log event to event log
+    function logEvent(event) {
+      const eventsLog = document.getElementById('eventsLog');
+      const eventEl = document.createElement('div');
+      eventEl.className = `event ${event.type}`;
+
+      let details = '';
+      if (event.type === 'message_update' && event.assistantMessageEvent?.delta) {
+        details = `delta: "${escapeHtml(event.assistantMessageEvent.delta.substring(0, 50))}${event.assistantMessageEvent.delta.length > 50 ? '...' : ''}"`;
+      } else if (event.type === 'text_delta') {
+        details = `delta: "${escapeHtml(event.delta?.substring(0, 50) || '')}${(event.delta?.length || 0) > 50 ? '...' : ''}"`;
+      } else if (event.type === 'thinking_delta') {
+        details = `delta: "${escapeHtml(event.delta?.substring(0, 50) || '')}${(event.delta?.length || 0) > 50 ? '...' : ''}"`;
+      } else if (event.type === 'toolcall_start') {
+        details = `tool: ${event.toolName}`;
+      } else if (event.type === 'tool_execution_start') {
+        details = `tool: ${event.toolName}, args: ${JSON.stringify(event.args).substring(0, 50)}...`;
+      } else if (event.type === 'done') {
+        details = `reason: ${event.reason}`;
+      } else if (event.type === 'error') {
+        details = `reason: ${event.reason}`;
+      }
+
+      eventEl.innerHTML = `
+        <span class="event-type">${event.type}</span>
+        <span class="event-details">${details}</span>
+      `;
+
+      eventsLog.appendChild(eventEl);
+      eventsLog.scrollTop = eventsLog.scrollHeight;
+    }
+
+    // Escape HTML
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Send message
+    window.sendMessage = async function() {
+      const input = document.getElementById('userInput');
+      const message = input.value.trim();
+
+      if (!message) return;
+
+      if (!agent) {
+        agent = initAgent();
+        if (!agent) return;
+      }
+
+      // Add user message to chat
+      addMessage('user', message);
+      input.value = '';
+
+      try {
+        abortController = new AbortController();
+        await agent.prompt(message, undefined, { signal: abortController.signal });
+      } catch (error) {
+        if (error.message !== 'Request aborted by user') {
+          log.error('Error:', error);
+          addErrorMessage(error.message);
+        }
+      } finally {
+        abortController = null;
+      }
+    };
+
+    // Abort request
+    window.abortRequest = function() {
+      if (abortController) {
+        abortController.abort();
+        abortController = null;
+        updateStatus('idle');
+        logEvent({ type: 'error', reason: 'aborted' });
+      }
+    };
+
+    // Clear chat
+    window.clearChat = function() {
+      document.getElementById('chatMessages').innerHTML = '';
+      document.getElementById('usageStats').style.display = 'none';
+    };
+
+    // Reset agent
+    window.resetAgent = function() {
+      agent = null;
+      abortController = null;
+      clearChat();
+      updateStatus('idle');
+      logEvent({ type: 'agent_start', reason: 'reset' });
+    };
+
+    // Test steering
+    window.testSteering = async function() {
+      if (!agent) {
+        alert('Please send a message first to initialize the agent');
+        return;
+      }
+
+      // Queue a steering message
+      agent.steer({
+        role: 'user',
+        content: 'Please summarize your previous response in one sentence.',
+        timestamp: Date.now(),
+      });
+
+      logEvent({ type: 'agent_start', reason: 'steering' });
+    };
+
+    // Clear events
+    window.clearEvents = function() {
+      document.getElementById('eventsLog').innerHTML = '';
+    };
+
+    // Load models from OpenRouter API using getModels()
+    let allModels = [];
+
+    async function loadModels() {
+      const modelSelect = document.getElementById('model');
+      try {
+        allModels = await getModels();
+        
+        if (allModels.length > 0) {
+          renderModels(allModels);
+        }
+      } catch (error) {
+        log.error('Failed to load models:', error);
+        modelSelect.innerHTML = '<option value="anthropic/claude-sonnet-4">Anthropic Claude Sonnet 4</option>';
+      }
+    }
+
+    function renderModels(models) {
+      const modelSelect = document.getElementById('model');
+      const currentSelection = modelSelect.value;
+      
+      // Sort models by provider and name
+      models.sort((a, b) => {
+        const aName = a.id.toLowerCase();
+        const bName = b.id.toLowerCase();
+        return aName.localeCompare(bName);
+      });
+      
+      // Group by provider
+      const providers = {};
+      for (const model of models) {
+        const provider = model.id.split('/')[0] || 'other';
+        if (!providers[provider]) {
+          providers[provider] = [];
+        }
+        providers[provider].push(model);
+      }
+      
+      // Clear and populate select
+      modelSelect.innerHTML = '';
+      
+      // Add popular models first
+      const popularIds = [
+        'anthropic/claude-sonnet-4',
+        'anthropic/claude-3-5-sonnet',
+        'openai/gpt-4o',
+        'google/gemini-2.5-flash',
+        'meta-llama/llama-3.1-405b-instruct',
+        'mistralai/mistral-large-2512',
+        'qwen/qwen-2.5-coder-32b-instruct',
+        // Free models
+        'mistralai/mistral-small-3.1-24b-instruct:free',
+        'meta-llama/llama-3.3-70b-instruct:free',
+        'nvidia/nemotron-nano-9b-v2:free',
+      ];
+      
+      const popularModels = models.filter(m => popularIds.includes(m.id));
+      if (popularModels.length > 0) {
+        const popularGroup = document.createElement('optgroup');
+        popularGroup.label = '⭐ Popular';
+        for (const model of popularModels) {
+          const option = document.createElement('option');
+          option.value = model.id;
+          option.textContent = model.name || model.id;
+          popularGroup.appendChild(option);
+        }
+        modelSelect.appendChild(popularGroup);
+      }
+      
+      // Add optgroups for each provider (excluding popular ones)
+      const sortedProviders = Object.keys(providers).sort();
+      for (const provider of sortedProviders) {
+        const providerModels = providers[provider].filter(m => !popularIds.includes(m.id));
+        if (providerModels.length === 0) continue;
+        
+        const providerGroup = document.createElement('optgroup');
+        providerGroup.label = provider.charAt(0).toUpperCase() + provider.slice(1);
+        for (const model of providerModels) {
+          const option = document.createElement('option');
+          option.value = model.id;
+          option.textContent = model.name || model.id.split('/')[1] || model.id;
+          providerGroup.appendChild(option);
+        }
+        modelSelect.appendChild(providerGroup);
+      }
+      
+      // Restore selection if still available
+      if (currentSelection && models.some(m => m.id === currentSelection)) {
+        modelSelect.value = currentSelection;
+      } else if (models.some(m => m.id === 'mistralai/mistral-small-3.1-24b-instruct:free')) {
+        modelSelect.value = 'mistralai/mistral-small-3.1-24b-instruct:free';
+      } else if (models.some(m => m.id === 'openrouter/free')) {
+        modelSelect.value = 'openrouter/free';
+      } else if (models.length > 0) {
+        modelSelect.value = models[0].id;
+      }
+    }
+
+    // Filter models based on search
+    function filterModels(searchTerm) {
+      const modelSelect = document.getElementById('model');
+      const options = modelSelect.getElementsByTagName('option');
+      const optgroups = modelSelect.getElementsByTagName('optgroup');
+      
+      if (!searchTerm) {
+        // Show all options
+        for (const option of options) {
+          option.style.display = '';
+        }
+        for (const group of optgroups) {
+          group.style.display = '';
+        }
+        return;
+      }
+      
+      const term = searchTerm.toLowerCase();
+      let visibleCount = 0;
+      const visibleGroups = new Set();
+      
+      // Hide/show options based on search
+      for (const option of options) {
+        const matches = option.value.toLowerCase().includes(term) || 
+                       option.textContent.toLowerCase().includes(term);
+        option.style.display = matches ? '' : 'none';
+        if (matches) {
+          visibleCount++;
+          // Find parent group
+          const parent = option.parentElement;
+          if (parent.tagName === 'OPTGROUP') {
+            visibleGroups.add(parent);
+          }
+        }
+      }
+      
+      // Hide empty groups
+      for (const group of optgroups) {
+        const hasVisible = visibleGroups.has(group);
+        group.style.display = hasVisible ? '' : 'none';
+      }
+    }
+
+    // Search input handler with debounce
+    let searchTimeout = null;
+    document.getElementById('modelSearch').addEventListener('input', function(e) {
+      if (searchTimeout) clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        filterModels(e.target.value);
+      }, 100);
+    });
+
+    // Model select change handler - update search box with selected model
+    document.getElementById('model').addEventListener('change', function(e) {
+      const selectedModel = allModels.find(m => m.id === e.target.value);
+      if (selectedModel) {
+        document.getElementById('modelSearch').value = selectedModel.name || selectedModel.id;
+      }
+    });
+
+    // Load models on page load
+    loadModels();
+
+    // Handle Enter key in input
+    document.getElementById('userInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    // Initialize status
+    updateStatus('idle');
+  </script>
+</body>
+</html>

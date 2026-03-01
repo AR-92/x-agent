@@ -105,6 +105,120 @@ Via `@mariozechner/pi-ai`, X-Agent supports:
 - **Groq** - Fast inference
 - **Cerebras** - High-performance models
 
+## OpenRouter Integration
+
+X-Agent includes a built-in **OpenRouter module** that serves as a complete drop-in replacement for `@mariozechner/pi-ai`. This gives you access to **300+ models** across all providers through a single API.
+
+### Quick Start with OpenRouter
+
+```javascript
+import { Agent } from "@mariozechner/x-agent";
+import { openRouterStream, getModel } from "@mariozechner/x-agent/openrouter";
+
+const agent = new Agent({
+  initialState: {
+    systemPrompt: "You are a helpful assistant.",
+    model: getModel('anthropic/claude-sonnet-4'),
+  },
+  streamFn: async (model, context, options) => {
+    return openRouterStream({
+      ...options,
+      apiKey: 'sk-or-...', // Your OpenRouter API key
+      modelId: model.id,
+      siteUrl: 'https://yoursite.com', // Optional: for ranking
+      siteName: 'Your Site', // Optional: for ranking
+    }, context);
+  },
+});
+
+agent.subscribe((event) => {
+  if (event.type === "message_update") {
+    console.log(event.assistantMessageEvent.delta);
+  }
+});
+
+await agent.prompt("Hello!");
+```
+
+### OpenRouter-Specific Parameters
+
+The OpenRouter module supports all OpenRouter-specific parameters:
+
+```javascript
+const agent = new Agent({
+  initialState: {
+    systemPrompt: "You are helpful.",
+    model: getModel('anthropic/claude-sonnet-4'),
+  },
+  streamFn: async (model, context, options) => {
+    return openRouterStream({
+      ...options,
+      apiKey: 'sk-or-...',
+      modelId: model.id,
+      
+      // Sampling parameters
+      temperature: 0.7,
+      top_p: 0.9,
+      top_k: 50,
+      frequency_penalty: 0.5,
+      presence_penalty: 0.5,
+      
+      // Output control
+      maxTokens: 2048,
+      stop: ['END'],
+      
+      // Log probabilities
+      logprobs: true,
+      top_logprobs: 5,
+      
+      // Structured outputs
+      response_format: { type: 'json_object' },
+      
+      // Tool calling
+      tool_choice: 'auto', // or 'required', 'none', or { type: 'function', function: { name: '...' } }
+      parallel_tool_calls: true,
+      
+      // OpenRouter features
+      transforms: ['middle-out'], // Context compression
+      include_reasoning: true, // Enable thinking/reasoning
+      
+      // Provider passthrough
+      provider: { order: ['Anthropic'] },
+      
+      // Site info for ranking
+      siteUrl: 'https://yoursite.com',
+      siteName: 'Your Site',
+    }, context);
+  },
+});
+```
+
+### Available OpenRouter Models
+
+```javascript
+import { getModels, getModelsByProvider, getProviders } from "@mariozechner/x-agent/openrouter";
+
+// Get all available models
+const allModels = await getModels();
+
+// Get models by provider
+const anthropicModels = await getModelsByProvider('anthropic');
+const googleModels = await getModelsByProvider('google');
+
+// Get all providers
+const providers = await getProviders(); // ['anthropic', 'google', 'openai', ...]
+```
+
+### Features
+
+- ✅ **All event types** - Identical to pi-ai (`start`, `text_*`, `thinking_*`, `toolcall_*`, `done`, `error`)
+- ✅ **Full tool calling** - Streaming partial JSON parsing and validation
+- ✅ **Thinking/reasoning support** - Native support for reasoning models
+- ✅ **Image/multi-modal support** - Vision models work out of the box
+- ✅ **Context serialization** - Save/restore conversation state
+- ✅ **300+ models** - Access to all OpenRouter providers
+- ✅ **All OpenRouter parameters** - Full API coverage
+
 ## API Reference
 
 ### Agent Options

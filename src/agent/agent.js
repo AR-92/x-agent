@@ -3,6 +3,9 @@ import { agentLoop, agentLoopContinue } from "../loop/loop.js";
 import { createState } from "./state.js";
 import { EventManager } from "./events.js";
 import { QueueManager } from "./queues.js";
+import { createLogger } from "../logger.js";
+
+const log = createLogger('Agent');
 
 /**
  * Default convertToLlm: Keep only LLM-compatible messages

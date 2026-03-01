@@ -3,9 +3,13 @@
  * Provides model discovery and configuration
  */
 
+import { createLogger } from '../logger.js';
+
+const log = createLogger('OpenRouter.Models');
+
 /**
  * Get a model configuration for OpenRouter
- * 
+ *
  * @param {string} modelId - OpenRouter model ID (e.g., 'anthropic/claude-sonnet-4')
  * @returns {any} Model object for X-Agent
  */
@@ -21,7 +25,7 @@ export function getModel(modelId) {
 /**
  * Get all available OpenRouter models
  * Fetches from OpenRouter API
- * 
+ *
  * @returns {Promise<any[]>} List of available models
  */
 export async function getModels() {
@@ -37,7 +41,7 @@ export async function getModels() {
 			topProvider: model.top_provider,
 		})) || [];
 	} catch (e) {
-		console.error('Failed to fetch OpenRouter models:', e);
+		log.error('Failed to fetch OpenRouter models:', e);
 		return [];
 	}
 }

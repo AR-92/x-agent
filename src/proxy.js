@@ -7,6 +7,9 @@ import {
 	EventStream,
 	parseStreamingJson,
 } from "@mariozechner/pi-ai";
+import { createLogger } from "./logger.js";
+
+const log = createLogger('Proxy');
 
 /**
  * Proxy event stream class
@@ -286,7 +289,7 @@ function processProxyEvent(proxyEvent, partial) {
 			return { type: "error", reason: proxyEvent.reason, error: partial };
 
 		default:
-			console.warn(`Unhandled proxy event type: ${proxyEvent.type}`);
+			log.warn(`Unhandled proxy event type: ${proxyEvent.type}`);
 			return undefined;
 	}
 }

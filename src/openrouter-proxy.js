@@ -1,9 +1,9 @@
 /**
  * OpenRouter Proxy Client for X-Agent
- * 
+ *
  * A drop-in proxy client that handles all LLM communication with OpenRouter.
  * Use this instead of pi-ai when you want to use OpenRouter directly.
- * 
+ *
  * Features:
  * - Model routing (300+ OpenRouter models)
  * - API authentication
@@ -12,31 +12,21 @@
  * - Tool call handling with partial JSON
  * - Event formatting (compatible with X-Agent)
  * - Thinking/reasoning support
- * 
+ *
  * @example
  * ```javascript
  * import { Agent } from '@mariozechner/x-agent';
  * import { createOpenRouterStream } from './openrouter-proxy.js';
- * 
+ *
  * const agent = new Agent({
- *   initialState: {
- *     systemPrompt: 'You are a helpful assistant.',
- *     model: { id: 'anthropic/claude-sonnet-4', provider: 'openrouter' },
- *   },
- *   streamFn: createOpenRouterStream({
- *     apiKey: 'sk-or-...',
- *     siteUrl: 'https://yoursite.com',
- *     siteName: 'Your Site',
- *   }),
+ *   streamFn: createOpenRouterStream,
  * });
- * 
- * await agent.prompt('Hello!');
  * ```
  */
 
-// =============================================================================
-// Type Definitions (JSDoc)
-// =============================================================================
+import { createLogger } from './logger.js';
+
+const log = createLogger('OpenRouterProxy');
 
 /**
  * @typedef {Object} OpenRouterOptions
@@ -690,7 +680,7 @@ export async function getModels() {
       pricing: model.pricing,
     })) || [];
   } catch (e) {
-    console.error('Failed to fetch OpenRouter models:', e);
+    log.error('Failed to fetch OpenRouter models:', e);
     return [];
   }
 }

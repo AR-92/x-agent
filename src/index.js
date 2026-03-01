@@ -8,3 +8,5 @@ export * from "./proxy.js";
 export * from "./openrouter/index.js";
 // Types (JSDoc)
 export * from "./types.js";
+// Logger
+export * from "./logger.js";

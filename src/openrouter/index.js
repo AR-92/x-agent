@@ -67,3 +67,6 @@ export {
 
 // Model discovery
 export { getModel, getModels, getModelsByProvider, getProviders } from './models.js';
+
+// Logger
+export { createLogger, LogLevel, setLogLevel, getLogLevel } from '../logger.js';

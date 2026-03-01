@@ -8,7 +8,7 @@ try {
 
 console.log("Building X-Agent with Bun...\n");
 
-// Build ESM bundle
+// Build ESM bundle (for Node.js usage, externalizes pi-ai)
 const esmResult = await build({
 	entrypoints: ["src/index.js"],
 	outdir: "dist",
@@ -22,7 +22,7 @@ const esmResult = await build({
 
 console.log(`✓ ESM bundle: ${esmResult.outputs[0].path}`);
 
-// Build UMD bundle
+// Build UMD bundle (for Node.js usage, externalizes pi-ai)
 const umdResult = await build({
 	entrypoints: ["src/index.js"],
 	outdir: "dist",
@@ -37,13 +37,40 @@ const umdResult = await build({
 
 console.log(`✓ UMD bundle: ${umdResult.outputs[0].path}\n`);
 
+// Build OpenRouter ESM bundle (browser-compatible, no external deps)
+const orEsmResult = await build({
+	entrypoints: ["src/openrouter/index.js"],
+	outdir: "dist",
+	naming: "x-agent-openrouter.min.js",
+	minify: true,
+	sourcemap: true,
+	target: "browser",
+	format: "esm",
+});
+
+console.log(`✓ OpenRouter ESM bundle: ${orEsmResult.outputs[0].path}`);
+
+// Build OpenRouter UMD bundle (browser-compatible, no external deps)
+const orUmdResult = await build({
+	entrypoints: ["src/openrouter/index.js"],
+	outdir: "dist",
+	naming: "x-agent-openrouter.umd.min.js",
+	minify: true,
+	sourcemap: true,
+	target: "browser",
+	format: "iife",
+	globalName: "XAgentOpenRouter",
+});
+
+console.log(`✓ OpenRouter UMD bundle: ${orUmdResult.outputs[0].path}\n`);
+
 // Print file sizes
 const { statSync } = await import("fs");
 const { gzip } = await import("zlib");
 const { promisify } = await import("util");
 const gzipAsync = promisify(gzip);
 
-for (const file of ["x-agent.min.js", "x-agent.umd.min.js"]) {
+for (const file of ["x-agent.min.js", "x-agent.umd.min.js", "x-agent-openrouter.min.js", "x-agent-openrouter.umd.min.js"]) {
 	const content = await Bun.file(`dist/${file}`).arrayBuffer();
 	const gzipped = await gzipAsync(Buffer.from(content));
 	const size = statSync(`dist/${file}`).size;
