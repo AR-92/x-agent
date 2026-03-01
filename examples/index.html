@@ -109,18 +109,18 @@
   </script>
 
   <script type="module">
-    // Import everything from OpenRouter module (pi-ai replacement)
-    import { Agent } from './dist/x-agent.min.js';
-    import { 
-      openRouterStream, 
-      getModel, 
-      getModels, 
-      createLogger, 
-      setLogLevel, 
+    // Import everything from local X-Agent modules
+    import { Agent } from './x-agent.min.js';
+    import {
+      openRouterStream,
+      getModel,
+      getModels,
+      createLogger,
+      setLogLevel,
       LogLevel,
       EventStream,
       parseStreamingJson,
-    } from './dist/x-agent-openrouter.min.js';
+    } from './x-agent-openrouter.min.js';
     
     // Enable DEBUG logging for development
     setLogLevel(LogLevel.DEBUG);
