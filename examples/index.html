@@ -93,31 +93,10 @@
     </div>
   </div>
 
-  <!-- Import maps for browser compatibility -->
-  <script type="importmap">
-  {
-    "imports": {
-      "@mariozechner/pi-ai": "https://cdn.jsdelivr.net/npm/@mariozechner/pi-ai@0.55.0/+esm",
-      "./config.js": "./config.js"
-    }
-  }
-  </script>
-
   <script type="module">
-    // Load config (contains API key from .env)
     // In dev mode, API key is injected by dev server into window.OPENROUTER_API_KEY
     let apiKeyToUse = window.OPENROUTER_API_KEY || '';
-    
-    // Try to load from config.js (production build)
-    if (!apiKeyToUse) {
-      try {
-        const config = await import('./config.js');
-        apiKeyToUse = config.OPENROUTER_API_KEY || '';
-      } catch (e) {
-        // config.js doesn't exist in dev mode
-      }
-    }
-    
+
     // Set API key if available
     if (apiKeyToUse) {
       document.addEventListener('DOMContentLoaded', () => {
