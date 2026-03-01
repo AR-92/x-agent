@@ -40,7 +40,7 @@ console.log(`📁 Root: ${ROOT}\n`);
 serve({
 	port: PORT,
 	
-	fetch(req) {
+	async fetch(req) {
 		const url = new URL(req.url);
 		let path = url.pathname;
 		
@@ -67,17 +67,17 @@ serve({
 		
 		// Serve static files
 		try {
-			const filePath = join(ROOT, path);
+			const filePath = path.startsWith('/') ? join(ROOT, path.slice(1)) : join(ROOT, path);
 			const file = Bun.file(filePath);
 			
-			// Security: ensure file is within ROOT
-			const realPath = await file.path;
-			if (!realPath.startsWith(ROOT)) {
-				return new Response('Forbidden', { status: 403 });
+			// Check if file exists
+			if (!(await file.exists())) {
+				return new Response('Not Found', { status: 404 });
 			}
 			
 			return new Response(file);
 		} catch (e) {
+			console.log('Error serving file:', path, e.message);
 			return new Response('Not Found', { status: 404 });
 		}
 	},

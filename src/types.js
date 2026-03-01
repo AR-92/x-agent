@@ -29,7 +29,7 @@
  * @property {() => Promise<AgentMessage[]>} [getFollowUpMessages] - Returns follow-up messages
  * @property {string} [sessionId]
  * @property {string} [transport]
- * @property {import("@mariozechner/pi-ai").ThinkingBudgets} [thinkingBudgets]
+ * @property {Object} [thinkingBudgets] - Thinking budgets for token-based providers
  * @property {number} [maxRetryDelayMs]
  */
 

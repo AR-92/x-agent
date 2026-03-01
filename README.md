@@ -246,9 +246,6 @@ const agent = new Agent({
   // Follow-up mode: "one-at-a-time" (default) or "all"
   followUpMode: "one-at-a-time",
 
-  // Custom stream function (for proxy backends)
-  streamFn: streamProxy,
-
   // Session ID for provider caching
   sessionId: "session-123",
 
@@ -512,23 +509,6 @@ src/
     ├── loop.js           # Main loop logic
     ├── stream.js         # Stream creation
     └── tools.js          # Tool execution
-```
-
-## Proxy Usage
-
-For browser apps that proxy through a backend:
-
-```javascript
-import { Agent, streamProxy } from "@mariozechner/x-agent";
-
-const agent = new Agent({
-  streamFn: (model, context, options) =>
-    streamProxy(model, context, {
-      ...options,
-      authToken: "...",
-      proxyUrl: "https://your-server.com",
-    }),
-});
 ```
 
 ## Low-Level API
