@@ -1,5 +1,43 @@
 import { build } from "bun";
-import { mkdirSync } from "fs";
+import { mkdirSync, readFileSync, writeFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load .env file
+let envContent = {};
+try {
+	const envText = readFileSync(join(__dirname, '.env'), 'utf-8');
+	envText.split('\n').forEach(line => {
+		const [key, ...valueParts] = line.split('=');
+		if (key && valueParts.length > 0) {
+			envContent[key.trim()] = valueParts.join('=').trim().replace(/^["']|["']$/g, '');
+		}
+	});
+	console.log('Loaded .env file\n');
+} catch (e) {
+	console.log('No .env file found, using empty config\n');
+}
+
+// Update config.js with env values
+const configPath = join(__dirname, 'config.js');
+const configContent = `/**
+ * App Configuration
+ * Auto-generated from .env file
+ */
+
+export const OPENROUTER_API_KEY = '${envContent.OPENROUTER_API_KEY || ''}';
+
+export const CONFIG = {
+  defaultModel: 'mistralai/mistral-small-3.1-24b-instruct:free',
+  siteUrl: typeof window !== 'undefined' ? window.location.origin : '',
+  siteName: 'X-Agent Test',
+};
+`;
+writeFileSync(configPath, configContent);
+console.log('Generated config.js from .env\n');
 
 // Ensure dist directory exists
 try {

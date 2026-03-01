@@ -350,9 +350,25 @@
   <script type="importmap">
   {
     "imports": {
-      "@mariozechner/pi-ai": "https://cdn.jsdelivr.net/npm/@mariozechner/pi-ai@0.55.0/+esm"
+      "@mariozechner/pi-ai": "https://cdn.jsdelivr.net/npm/@mariozechner/pi-ai@0.55.0/+esm",
+      "./config.js": "./config.js"
     }
   }
+  </script>
+
+  <script type="module">
+    // Load config (contains API key from .env)
+    import { OPENROUTER_API_KEY } from './config.js';
+    
+    // Set API key if available from .env
+    if (OPENROUTER_API_KEY) {
+      document.addEventListener('DOMContentLoaded', () => {
+        const apiKeyInput = document.getElementById('apiKey');
+        if (apiKeyInput && OPENROUTER_API_KEY) {
+          apiKeyInput.value = OPENROUTER_API_KEY;
+        }
+      });
+    }
   </script>
 
   <script type="module">

@@ -132,6 +132,10 @@ export async function openRouterStream(config, context) {
 			});
 
 			if (!response.ok) {
+				const errorText = await response.clone().text();
+				log.error('Response status:', response.status);
+				log.error('Response body:', errorText);
+				
 				const error = await response.json().catch(() => ({ error: response.statusText }));
 
 				log.error('API error:', error);
@@ -147,6 +151,8 @@ export async function openRouterStream(config, context) {
 					throw new Error(`Rate limit exceeded (429). ${error.error?.message || 'Please wait and try again.'}`);
 				} else if (response.status === 404) {
 					throw new Error(`OpenRouter API endpoint not found (404). Model: ${config.modelId}. Error: ${error.error?.message || response.statusText}`);
+				} else if (response.status === 401) {
+					throw new Error(`Unauthorized (401). ${error.error?.message || 'Check your API key and referer header.'} Raw: ${errorText}`);
 				} else {
 					throw new Error(`OpenRouter error (${response.status}): ${error.error?.message || response.statusText}`);
 				}
