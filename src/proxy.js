@@ -6,7 +6,7 @@
 import {
 	EventStream,
 	parseStreamingJson,
-} from "@mariozechner/pi-ai";
+} from "./openrouter/index.js";
 import { createLogger } from "./logger.js";
 
 const log = createLogger('Proxy');

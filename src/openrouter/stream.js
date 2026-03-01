@@ -8,10 +8,134 @@ import { createLogger } from '../logger.js';
 const log = createLogger('OpenRouter.Stream');
 
 /**
+ * Generic event stream class for async iteration
+ * Matches pi-ai EventStream exactly
+ */
+export class EventStream {
+	constructor(isComplete, extractResult) {
+		this.isComplete = isComplete;
+		this.extractResult = extractResult;
+		this.queue = [];
+		this.waiting = [];
+		this.done = false;
+		this.finalResultPromise = new Promise((resolve) => {
+			this.resolveFinalResult = resolve;
+		});
+	}
+
+	push(event) {
+		if (this.done) return;
+		if (this.isComplete(event)) {
+			this.done = true;
+			this.resolveFinalResult(this.extractResult(event));
+		}
+		// Deliver to waiting consumer or queue it
+		const waiter = this.waiting.shift();
+		if (waiter) {
+			waiter({ value: event, done: false });
+		} else {
+			this.queue.push(event);
+		}
+	}
+
+	end(result) {
+		this.done = true;
+		if (result !== undefined) {
+			this.resolveFinalResult(result);
+		}
+		// Notify all waiting consumers that we're done
+		while (this.waiting.length > 0) {
+			const waiter = this.waiting.shift();
+			waiter({ value: undefined, done: true });
+		}
+	}
+
+	async *[Symbol.asyncIterator]() {
+		while (true) {
+			if (this.queue.length > 0) {
+				yield this.queue.shift();
+			} else if (this.done) {
+				return;
+			} else {
+				const result = await new Promise((resolve) => this.waiting.push(resolve));
+				if (result.done) return;
+				yield result.value;
+			}
+		}
+	}
+
+	result() {
+		return this.finalResultPromise;
+	}
+}
+
+/**
+ * AssistantMessageEventStream - specialized for assistant messages
+ * Matches pi-ai AssistantMessageEventStream exactly
+ */
+export class AssistantMessageEventStream extends EventStream {
+	constructor() {
+		super(
+			(event) => event.type === 'done' || event.type === 'error',
+			(event) => {
+				if (event.type === 'done') {
+					return event.message;
+				} else if (event.type === 'error') {
+					return event.error;
+				}
+				throw new Error('Unexpected event type for final result');
+			}
+		);
+	}
+}
+
+/**
+ * Factory function for AssistantMessageEventStream
+ */
+export function createAssistantMessageEventStream() {
+	return new AssistantMessageEventStream();
+}
+
+/**
+ * Parse partial JSON during streaming
+ * Matches pi-ai parseStreamingJson exactly
+ * @param {string} partialJson
+ * @returns {any}
+ */
+export function parseStreamingJson(partialJson) {
+	if (!partialJson || partialJson.trim() === '') {
+		return {};
+	}
+	// Try standard parsing first (fastest for complete JSON)
+	try {
+		return JSON.parse(partialJson);
+	} catch {
+		// For incomplete JSON, try to parse what we can
+		try {
+			// Simple partial JSON parser - handles common cases
+			let cleaned = partialJson.trim();
+			// Add missing closing braces/brackets
+			const openBraces = (cleaned.match(/\{/g) || []).length;
+			const closeBraces = (cleaned.match(/\}/g) || []).length;
+			const openBrackets = (cleaned.match(/\[/g) || []).length;
+			const closeBrackets = (cleaned.match(/\]/g) || []).length;
+			
+			cleaned += '}'.repeat(openBraces - closeBraces);
+			cleaned += ']'.repeat(openBrackets - closeBrackets);
+			
+			return JSON.parse(cleaned) || {};
+		} catch {
+			// If all parsing fails, return empty object
+			return {};
+		}
+	}
+}
+
+/**
  * Create an OpenRouter event stream compatible with X-Agent
  * Emits all event types: start, text_*, thinking_*, toolcall_*, done, error
  *
- * @returns {any} EventStream
+ * @returns {EventStream} EventStream
  */
 export function createOpenRouterStream() {
 	const listeners = new Set();

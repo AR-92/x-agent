@@ -1,4 +1,4 @@
-import { validateToolArguments } from "@mariozechner/pi-ai";
+import { validateToolArguments } from "../openrouter/index.js";
 
 /**
  * Execute tool calls from an assistant message

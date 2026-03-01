@@ -1,9 +1,9 @@
 /**
  * OpenRouter Module for X-Agent
- * 
+ *
  * Complete drop-in replacement for @mariozechner/pi-ai when using OpenRouter.
  * Produces identical events with full compatibility.
- * 
+ *
  * Features:
  * - All event types (start, text_*, thinking_*, toolcall_*, done, error)
  * - Full tool calling with streaming partial JSON and validation
@@ -15,12 +15,13 @@
  * - Log probabilities support
  * - Structured outputs
  * - Provider-specific parameters
- * 
+ *
  * @example
  * ```javascript
+ * // Use as pi-ai replacement
  * import { Agent } from '@mariozechner/x-agent';
- * import { openRouterStream, getModel } from '@mariozechner/x-agent/openrouter';
- * 
+ * import { openRouterStream, getModel, EventStream, parseStreamingJson } from '@mariozechner/x-agent/openrouter';
+ *
  * const agent = new Agent({
  *   initialState: {
  *     systemPrompt: 'You are helpful.',
@@ -37,16 +38,22 @@
  *     return stream;
  *   },
  * });
- * 
+ *
  * await agent.prompt('Hello!');
  * ```
  */
 
 // Main stream function (matches pi-ai streamSimple)
-export { openRouterStream } from './client.js';
+export { openRouterStream, openRouterStream as streamSimple } from './client.js';
 
 // Event stream (compatible with X-Agent/pi-ai)
-export { createOpenRouterStream } from './stream.js';
+export { 
+	createOpenRouterStream, 
+	EventStream, 
+	AssistantMessageEventStream, 
+	createAssistantMessageEventStream,
+	parseStreamingJson,
+} from './stream.js';
 
 // Message conversion with full context handling
 export {

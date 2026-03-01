@@ -4,11 +4,61 @@
  */
 
 /**
+ * @typedef {Object} TextContent
+ * @property {'text'} type
+ * @property {string} text
+ * @property {string | null} textSignature
+ */
+
+/**
+ * @typedef {Object} ImageContent
+ * @property {'image'} type
+ * @property {string} data
+ * @property {string} mimeType
+ */
+
+/**
+ * @typedef {Object} ThinkingContent
+ * @property {'thinking'} type
+ * @property {string} thinking
+ * @property {string | null} thinkingSignature
+ */
+
+/**
+ * @typedef {Object} ToolCallContent
+ * @property {'toolCall'} type
+ * @property {string} id
+ * @property {string} name
+ * @property {any} arguments
+ */
+
+/**
+ * @typedef {TextContent | ImageContent | ThinkingContent | ToolCallContent} ContentBlock
+ */
+
+/**
+ * @typedef {Object} Message
+ * @property {'user' | 'assistant' | 'toolResult'} role
+ * @property {string | ContentBlock[]} content
+ * @property {number} [timestamp]
+ */
+
+/**
+ * @typedef {Object} ToolResultMessage
+ * @property {'toolResult'} role
+ * @property {string} toolCallId
+ * @property {string} toolName
+ * @property {ContentBlock[]} content
+ * @property {boolean} [isError]
+ * @property {number} [timestamp]
+ */
+
+/**
  * Convert X-Agent messages to OpenRouter format
  * Handles all content types including thinking, tool calls, images
- * 
- * @param {import("../types.js").AgentMessage[]} messages 
- * @param {string} systemPrompt 
+ *
+ * @param {Message[]} messages
+ * @param {string} systemPrompt
  * @returns {any[]}
  */
 export function convertToOpenRouterMessages(messages, systemPrompt) {

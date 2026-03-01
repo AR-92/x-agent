@@ -8,10 +8,18 @@ import { createLogger } from '../logger.js';
 const log = createLogger('OpenRouter.Models');
 
 /**
+ * @typedef {Object} Model
+ * @property {string} id
+ * @property {'openrouter'} provider
+ * @property {string} name
+ * @property {'openrouter-chat'} api
+ */
+
+/**
  * Get a model configuration for OpenRouter
  *
  * @param {string} modelId - OpenRouter model ID (e.g., 'anthropic/claude-sonnet-4')
- * @returns {any} Model object for X-Agent
+ * @returns {Model} Model object for X-Agent
  */
 export function getModel(modelId) {
 	return {

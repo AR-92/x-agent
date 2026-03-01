@@ -1,4 +1,4 @@
-import { getModel, streamSimple } from "@mariozechner/pi-ai";
+import { getModel, streamSimple } from "../openrouter/index.js";
 import { agentLoop, agentLoopContinue } from "../loop/loop.js";
 import { createState } from "./state.js";
 import { EventManager } from "./events.js";

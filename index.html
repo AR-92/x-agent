@@ -288,7 +288,7 @@
       <form onsubmit="return false;">
         <div class="form-group">
           <label for="apiKey">OpenRouter API Key</label>
-          <input type="password" id="apiKey" placeholder="sk-or-..." value="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" autoComplete="off" />
+          <input type="password" id="apiKey" placeholder="sk-or-..." autoComplete="off" />
         </div>
       </form>
       <div class="form-group">
@@ -356,12 +356,18 @@
   </script>
 
   <script type="module">
-    // Import Agent from x-agent dist (uses import map for pi-ai)
+    // Import everything from OpenRouter module (pi-ai replacement)
     import { Agent } from './dist/x-agent.min.js';
-
-    // Import OpenRouter module from local dist (browser-compatible)
-    // Includes logger, models, and stream functions
-    import { openRouterStream, getModel, getModels, createLogger, setLogLevel, LogLevel } from './dist/x-agent-openrouter.min.js';
+    import { 
+      openRouterStream, 
+      getModel, 
+      getModels, 
+      createLogger, 
+      setLogLevel, 
+      LogLevel,
+      EventStream,
+      parseStreamingJson,
+    } from './dist/x-agent-openrouter.min.js';
     
     // Enable DEBUG logging for development
     setLogLevel(LogLevel.DEBUG);

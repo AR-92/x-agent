@@ -4,10 +4,19 @@
  */
 
 /**
+ * @typedef {Object} Tool
+ * @property {string} name
+ * @property {string} label
+ * @property {string} description
+ * @property {any} parameters
+ * @property {(toolCallId: string, params: any, signal?: AbortSignal, onUpdate?: any) => Promise<any>} execute
+ */
+
+/**
  * Validate tool arguments against tool schema
  * Matches pi-ai validateToolCall functionality
- * 
- * @param {import("../types.js").AgentTool<any>} tool - Tool definition
+ *
+ * @param {Tool} tool - Tool definition
  * @param {any} toolCall - Tool call from OpenRouter
  * @returns {any} Validated arguments
  * @throws {Error} If validation fails

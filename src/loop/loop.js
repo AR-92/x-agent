@@ -1,4 +1,4 @@
-import { streamSimple } from "@mariozechner/pi-ai";
+import { streamSimple } from "../openrouter/index.js";
 import { createAgentStream } from "./stream.js";
 import { executeToolCalls } from "./tools.js";
 

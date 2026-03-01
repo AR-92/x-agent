@@ -1,13 +1,13 @@
 /**
- * @typedef {import("@mariozechner/pi-ai").AssistantMessageEvent} AssistantMessageEvent
- * @typedef {import("@mariozechner/pi-ai").ImageContent} ImageContent
- * @typedef {import("@mariozechner/pi-ai").Message} Message
- * @typedef {import("@mariozechner/pi-ai").Model} Model
- * @typedef {import("@mariozechner/pi-ai").SimpleStreamOptions} SimpleStreamOptions
- * @typedef {import("@mariozechner/pi-ai").streamSimple} streamSimple
- * @typedef {import("@mariozechner/pi-ai").TextContent} TextContent
- * @typedef {import("@mariozechner/pi-ai").Tool} Tool
- * @typedef {import("@mariozechner/pi-ai").ToolResultMessage} ToolResultMessage
+ * @typedef {import("./openrouter/stream.js").AssistantMessageEventStream} AssistantMessageEventStream
+ * @typedef {import("./openrouter/messages.js").ImageContent} ImageContent
+ * @typedef {import("./openrouter/messages.js").Message} Message
+ * @typedef {import("./openrouter/models.js").Model} Model
+ * @typedef {import("./openrouter/client.js").OpenRouterConfig} SimpleStreamOptions
+ * @typedef {import("./openrouter/client.js").openRouterStream} streamSimple
+ * @typedef {import("./openrouter/messages.js").TextContent} TextContent
+ * @typedef {import("./openrouter/tools.js").Tool} Tool
+ * @typedef {import("./openrouter/messages.js").ToolResultMessage} ToolResultMessage
  * @typedef {import("@sinclair/typebox").Static} Static
  * @typedef {import("@sinclair/typebox").TSchema} TSchema
  */

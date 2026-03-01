@@ -1,4 +1,4 @@
-import { EventStream } from "@mariozechner/pi-ai";
+import { EventStream } from "../openrouter/index.js";
 
 /**
  * Create an agent event stream
