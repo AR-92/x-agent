@@ -179,18 +179,11 @@ function convertToolResult(msg) {
 	// Handle both text and image content in tool results
 	const content = msg.content?.map(block => {
 		if (block.type === 'text') {
-			return { type: 'text', text: block.text };
+			return block.text;
 		} else if (block.type === 'image') {
-			return {
-				type: 'image_url',
-				image_url: {
-					url: block.data.startsWith('http')
-						? block.data
-						: `data:${block.mimeType};base64,${block.data}`,
-				},
-			};
+			return '[Image]';
 		}
-		return block;
+		return '';
 	}).join('\n') || '';
 
 	return {

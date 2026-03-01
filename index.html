@@ -1,277 +1,94 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>X-Agent + OpenRouter Test</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      background: #1a1a2e;
-      color: #eee;
-      min-height: 100vh;
-      padding: 20px;
-    }
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: #00d9ff;
-    }
-    .config-section {
-      background: #16213e;
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 20px;
-    }
-    .config-section h2 {
-      margin-bottom: 15px;
-      color: #00d9ff;
-      font-size: 1.2em;
-    }
-    .form-group {
-      margin-bottom: 15px;
-    }
-    label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: 500;
-    }
-    input, select, textarea {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #0f3460;
-      border-radius: 4px;
-      background: #1a1a2e;
-      color: #eee;
-      font-size: 14px;
-    }
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: #00d9ff;
-    }
-    textarea {
-      min-height: 80px;
-      resize: vertical;
-    }
-    .btn {
-      background: #00d9ff;
-      color: #1a1a2e;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 14px;
-      transition: background 0.2s;
-    }
-    .btn:hover {
-      background: #00b8d9;
-    }
-    .btn:disabled {
-      background: #555;
-      cursor: not-allowed;
-    }
-    .btn-danger {
-      background: #e74c3c;
-    }
-    .btn-danger:hover {
-      background: #c0392b;
-    }
-    .btn-secondary {
-      background: #6c757d;
-    }
-    .btn-secondary:hover {
-      background: #5a6268;
-    }
-    .main-content {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 20px;
-    }
-    .chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      border: 1px solid #0f3460;
-      border-radius: 4px;
-      padding: 15px;
-      margin-bottom: 15px;
-      background: #1a1a2e;
-      min-height: 400px;
-    }
-    .message {
-      margin-bottom: 15px;
-      padding: 10px 15px;
-      border-radius: 8px;
-      max-width: 85%;
-    }
-    .message.user {
-      background: #0f3460;
-      margin-left: auto;
-      border-bottom-right-radius: 2px;
-    }
-    .message.assistant {
-      background: #1a5276;
-      border-bottom-left-radius: 2px;
-    }
-    .message.tool-result {
-      background: #2d4a22;
-      border: 1px solid #4a7c23;
-    }
-    .message.error {
-      background: #5c2323;
-      border: 1px solid #e74c3c;
-    }
-    .message-label {
-      font-size: 12px;
-      color: #888;
-      margin-bottom: 5px;
-    }
-    .message-content {
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-    .thinking-block {
-      background: #2d2d44;
-      border-left: 3px solid #9b59b6;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 4px;
-      font-size: 13px;
-    }
-    .thinking-label {
-      color: #9b59b6;
-      font-size: 11px;
-      margin-bottom: 5px;
-    }
-    .tool-call-block {
-      background: #2d4a4a;
-      border-left: 3px solid #1abc9c;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 4px;
-    }
-    .tool-call-label {
-      color: #1abc9c;
-      font-size: 11px;
-      margin-bottom: 5px;
-    }
-    .tool-call-args {
-      font-family: monospace;
-      font-size: 12px;
-      background: #1a1a2e;
-      padding: 8px;
-      border-radius: 4px;
-      overflow-x: auto;
-    }
-    .chat-input {
-      display: flex;
-      gap: 10px;
-    }
-    .chat-input textarea {
-      flex: 1;
-      min-height: 60px;
-    }
-    .chat-input-buttons {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-    .controls {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 20px;
-    }
-    .status {
-      padding: 10px;
-      border-radius: 4px;
-      margin-top: 15px;
-      text-align: center;
-    }
-    .status.idle { background: #2d4a22; color: #2ecc71; }
-    .status.running { background: #4a3a2d; color: #f39c12; }
-    .status.error { background: #5c2323; color: #e74c3c; }
-    .clear-btn {
-      margin-top: 10px;
-    }
-    .usage-stats {
-      background: #0f3460;
-      padding: 10px;
-      border-radius: 4px;
-      margin-top: 10px;
-      font-size: 13px;
-    }
-    .usage-stats strong {
-      color: #00d9ff;
-    }
-  </style>
+  <!-- Tailwind CSS 4 CDN -->
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+  <!-- DaisyUI CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css">
 </head>
-<body>
-  <div class="container">
-    <h1>🤖 X-Agent + OpenRouter Test</h1>
+<body class="min-h-screen bg-base-300">
+  <div class="container mx-auto p-4 max-w-7xl">
+    <h1 class="text-4xl font-bold text-center mb-6 text-primary">🤖 X-Agent + OpenRouter Test</h1>
 
     <!-- Configuration -->
-    <div class="config-section">
-      <h2>⚙️ Configuration</h2>
-      <form onsubmit="return false;">
-        <div class="form-group">
-          <label for="apiKey">OpenRouter API Key</label>
-          <input type="password" id="apiKey" placeholder="sk-or-..." autoComplete="off" />
-        </div>
-      </form>
-      <div class="form-group">
-        <label for="model">Model</label>
-        <input type="text" id="modelSearch" placeholder="Search models..." style="margin-bottom: 5px;" />
-        <select id="model" size="10">
-          <option value="">Loading models...</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="systemPrompt">System Prompt</label>
-        <textarea id="systemPrompt" placeholder="You are a helpful assistant...">You are a helpful AI assistant. Be concise but thorough. When asked to perform calculations or use tools, show your work clearly.</textarea>
-      </div>
-      <div class="form-group">
-        <label for="thinkingLevel">Thinking Level</label>
-        <select id="thinkingLevel">
-          <option value="off">Off</option>
-          <option value="minimal">Minimal</option>
-          <option value="low">Low</option>
-          <option value="medium" selected>Medium</option>
-          <option value="high">High</option>
-          <option value="xhigh">Extra High</option>
-        </select>
+    <div class="card bg-base-200 shadow-xl mb-6">
+      <div class="card-body">
+        <h2 class="card-title text-secondary mb-4">⚙️ Configuration</h2>
+        <form onsubmit="return false;">
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text font-semibold">OpenRouter API Key</span>
+            </label>
+            <input type="password" id="apiKey" placeholder="sk-or-..." autoComplete="off" class="input input-bordered w-full" />
+          </div>
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text font-semibold">Model</span>
+            </label>
+            <input type="text" id="modelSearch" placeholder="Search models..." class="input input-bordered w-full mb-2" />
+            <select id="model" size="10" class="select select-bordered w-full h-48">
+              <option value="">Loading models...</option>
+            </select>
+          </div>
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text font-semibold">System Prompt</span>
+            </label>
+            <textarea id="systemPrompt" placeholder="You are a helpful assistant..." class="textarea textarea-bordered w-full min-h-[80px]">You are a helpful AI assistant. Be concise but thorough. When asked to perform calculations or use tools, show your work clearly.</textarea>
+          </div>
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text font-semibold">Thinking Level</span>
+            </label>
+            <select id="thinkingLevel" class="select select-bordered">
+              <option value="off">Off</option>
+              <option value="minimal">Minimal</option>
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+              <option value="xhigh">Extra High</option>
+            </select>
+          </div>
+        </form>
       </div>
     </div>
 
     <!-- Main Content -->
-    <div class="main-content">
+    <div class="grid grid-cols-1 gap-6">
       <!-- Chat Section -->
-      <div class="chat-section">
-        <h2>💬 Chat</h2>
-        <div class="chat-messages" id="chatMessages"></div>
-        <div class="chat-input">
-          <textarea id="userInput" placeholder="Type your message... (Try: 'Calculate 25 * 47', 'What is the capital of France?', or 'Count from 1 to 10')"></textarea>
-          <div class="chat-input-buttons">
-            <button class="btn" id="sendBtn" onclick="sendMessage()">Send</button>
-            <button class="btn btn-danger" id="abortBtn" onclick="abortRequest()" disabled>Abort</button>
+      <div class="card bg-base-200 shadow-xl min-h-[600px] flex flex-col">
+        <div class="card-body flex-1 flex flex-col">
+          <h2 class="card-title text-secondary mb-4">💬 Chat</h2>
+          <div class="chat-messages flex-1 overflow-y-auto border border-base-300 rounded-lg p-4 bg-base-300 min-h-[400px] mb-4" id="chatMessages"></div>
+          <div class="flex gap-2">
+            <textarea id="userInput" placeholder="Type your message... (Try: 'Calculate 25 * 47', 'What is the capital of France?', or 'Count from 1 to 10')" class="textarea textarea-bordered flex-1 min-h-[60px]"></textarea>
+            <div class="flex flex-col gap-2">
+              <button class="btn btn-primary" id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+              <button class="btn btn-error" id="abortBtn" onclick="abortRequest()" disabled>Abort</button>
+            </div>
+          </div>
+          <div class="flex gap-2 flex-wrap mt-4">
+            <button class="btn btn-secondary" onclick="clearChat()">Clear Chat</button>
+            <button class="btn btn-secondary" onclick="resetAgent()">Reset Agent</button>
+            <button class="btn btn-secondary" onclick="testSteering()">Test Steering</button>
+          </div>
+          <div class="alert mt-4" id="status">
+            <span>Status: Idle</span>
+          </div>
+          <div class="stats shadow mt-4" id="usageStats" style="display: none;">
+            <div class="stat">
+              <div class="stat-title">📊 Usage</div>
+              <div class="stat-value text-sm">
+                <span id="usageInput">Input: 0</span> |
+                <span id="usageOutput">Output: 0</span> |
+                <span id="usageTotal">Total: 0</span>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="controls">
-          <button class="btn btn-secondary" onclick="clearChat()">Clear Chat</button>
-          <button class="btn btn-secondary" onclick="resetAgent()">Reset Agent</button>
-          <button class="btn btn-secondary" onclick="testSteering()">Test Steering</button>
-        </div>
-        <div class="status idle" id="status">Status: Idle</div>
-        <div class="usage-stats" id="usageStats" style="display: none;"></div>
       </div>
     </div>
   </div>
@@ -534,8 +351,8 @@
       const abortBtn = document.getElementById('abortBtn');
       const sendBtn = document.getElementById('sendBtn');
 
-      statusEl.className = `status ${status}`;
-      statusEl.textContent = `Status: ${status.charAt(0).toUpperCase() + status.slice(1)}`;
+      statusEl.className = `alert alert-${status === 'running' ? 'warning' : status === 'error' ? 'error' : 'success'}`;
+      statusEl.innerHTML = `<span>Status: ${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
 
       abortBtn.disabled = status !== 'running';
       sendBtn.disabled = status === 'running';
@@ -546,24 +363,30 @@
       if (!usage) return;
 
       const statsEl = document.getElementById('usageStats');
-      statsEl.innerHTML = `
-        <strong>📊 Usage:</strong>
-        Input: ${usage.input} tokens |
-        Output: ${usage.output} tokens |
-        Total: ${usage.totalTokens} tokens
-        ${usage.cacheRead ? `| Cache: ${usage.cacheRead}` : ''}
-      `;
-      statsEl.style.display = 'block';
+      const usageInput = document.getElementById('usageInput');
+      const usageOutput = document.getElementById('usageOutput');
+      const usageTotal = document.getElementById('usageTotal');
+      
+      usageInput.textContent = `Input: ${usage.input}`;
+      usageOutput.textContent = `Output: ${usage.output}`;
+      usageTotal.textContent = `Total: ${usage.totalTokens}`;
+      
+      statsEl.style.display = 'flex';
     }
 
     // Add message to chat
     function addMessage(role, content, extraHtml = '') {
       const chatMessages = document.getElementById('chatMessages');
       const messageEl = document.createElement('div');
-      messageEl.className = `message ${role}`;
+      messageEl.className = `chat chat-${role === 'user' ? 'end' : 'start'} mb-4`;
       messageEl.innerHTML = `
-        <div class="message-label">${role === 'user' ? '👤 You' : role === 'assistant' ? '🤖 Assistant' : '🔧 Tool Result'}</div>
-        <div class="message-content">${escapeHtml(content)}${extraHtml}</div>
+        <div class="chat-image avatar">
+          <div class="w-10 rounded-full">
+            <img alt="${role}" src="${role === 'user' ? 'https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.jpg' : 'https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.jpg'}" />
+          </div>
+        </div>
+        <div class="chat-header text-sm opacity-50 mb-1">${role === 'user' ? '👤 You' : role === 'assistant' ? '🤖 Assistant' : '🔧 Tool Result'}</div>
+        <div class="chat-bubble ${role === 'user' ? 'chat-bubble-primary' : role === 'assistant' ? 'chat-bubble-secondary' : 'chat-bubble-success'}">${escapeHtml(content)}${extraHtml}</div>
       `;
       chatMessages.appendChild(messageEl);
       chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -574,11 +397,16 @@
     function addAssistantMessagePlaceholder() {
       const chatMessages = document.getElementById('chatMessages');
       const messageEl = document.createElement('div');
-      messageEl.className = 'message assistant';
+      messageEl.className = 'chat chat-start mb-4';
       messageEl.id = 'assistantMessagePlaceholder';
       messageEl.innerHTML = `
-        <div class="message-label">🤖 Assistant</div>
-        <div class="message-content"></div>
+        <div class="chat-image avatar">
+          <div class="w-10 rounded-full">
+            <img alt="Assistant" src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.jpg" />
+          </div>
+        </div>
+        <div class="chat-header text-sm opacity-50 mb-1">🤖 Assistant</div>
+        <div class="chat-bubble chat-bubble-secondary"><div class="message-content"></div></div>
       `;
       chatMessages.appendChild(messageEl);
       chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -602,16 +430,20 @@
             html += escapeHtml(block.text);
           } else if (block.type === 'thinking') {
             html += `
-              <div class="thinking-block">
-                <div class="thinking-label">🧠 Thinking:</div>
-                <div>${escapeHtml(block.thinking)}</div>
+              <div class="collapse collapse-arrow bg-base-100 my-2">
+                <input type="checkbox" />
+                <div class="collapse-title text-xs font-medium text-primary">🧠 Thinking</div>
+                <div class="collapse-content text-sm">${escapeHtml(block.thinking)}</div>
               </div>
             `;
           } else if (block.type === 'toolCall') {
             html += `
-              <div class="tool-call-block">
-                <div class="tool-call-label">🔧 Calling: ${block.name}</div>
-                <div class="tool-call-args">${escapeHtml(JSON.stringify(block.arguments, null, 2))}</div>
+              <div class="collapse collapse-arrow bg-base-100 my-2">
+                <input type="checkbox" checked />
+                <div class="collapse-title text-xs font-medium text-accent">🔧 Calling: ${block.name}</div>
+                <div class="collapse-content">
+                  <pre class="text-xs bg-base-300 p-2 rounded">${escapeHtml(JSON.stringify(block.arguments, null, 2))}</pre>
+                </div>
               </div>
             `;
           }

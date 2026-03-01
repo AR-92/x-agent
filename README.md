@@ -14,6 +14,7 @@
 - **Browser ready** - Works via CDN with no build step
 - **Bun powered** - Fast testing and building with Bun (no extra dependencies)
 - **OpenRouter native** - 300+ models from all providers (Anthropic, OpenAI, Google, etc.)
+- **Zero dependencies** - No runtime dependencies, fully self-contained
 
 ## Installation
 
@@ -34,13 +35,12 @@ bun add @ranag/x-agent
 ```html
 <!-- ESM module (recommended) -->
 <script type="module">
-  import { Agent } from "https://cdn.jsdelivr.net/npm/@mariozechner/x-agent@1.0.0/dist/x-agent.min.js";
-  import { getModel } from "https://cdn.jsdelivr.net/npm/@mariozechner/pi-ai@0.55.0/+esm";
+  import { Agent, getModel } from "https://cdn.jsdelivr.net/npm/@ranag/x-agent@1.0.0/dist/x-agent.min.js";
 
   const agent = new Agent({
     initialState: {
       systemPrompt: "You are a helpful assistant.",
-      model: getModel("google", "gemini-2.5-flash-lite-preview-06-17"),
+      model: getModel('anthropic/claude-sonnet-4'),
     },
   });
 
@@ -56,16 +56,14 @@ bun add @ranag/x-agent
 
 ```html
 <!-- UMD bundle (script tag, no module) -->
-<script src="https://cdn.jsdelivr.net/npm/@mariozechner/pi-ai@0.55.0/dist/pi-ai.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mariozechner/x-agent@1.0.0/dist/x-agent.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@ranag/x-agent@1.0.0/dist/x-agent.umd.min.js"></script>
 <script>
-  const { Agent } = window.XAgent;
-  const { getModel } = window.PiAI;
+  const { Agent, getModel } = window.XAgent;
 
   const agent = new Agent({
     initialState: {
       systemPrompt: "You are a helpful assistant.",
-      model: getModel("google", "gemini-2.5-flash-lite-preview-06-17"),
+      model: getModel('anthropic/claude-sonnet-4'),
     },
   });
 </script>
@@ -74,13 +72,21 @@ bun add @ranag/x-agent
 ## Quick Start
 
 ```javascript
-import { Agent } from "@mariozechner/x-agent";
-import { getModel } from "@mariozechner/pi-ai";
+import { Agent, getModel } from "@ranag/x-agent";
 
 const agent = new Agent({
   initialState: {
     systemPrompt: "You are a helpful assistant.",
-    model: getModel("google", "gemini-2.5-flash-lite-preview-06-17"),
+    model: getModel('anthropic/claude-sonnet-4'),
+  },
+  streamFn: async (model, context, options) => {
+    // Use OpenRouter module (included)
+    const { openRouterStream } = await import('@ranag/x-agent/openrouter');
+    return openRouterStream({
+      ...options,
+      apiKey: 'sk-or-...', // Your OpenRouter API key
+      modelId: model.id,
+    }, context);
   },
 });
 
@@ -93,28 +99,30 @@ agent.subscribe((event) => {
 await agent.prompt("Hello!");
 ```
 
-## Supported Providers
+## Supported Models
 
-Via `@mariozechner/pi-ai`, X-Agent supports:
+Via **OpenRouter**, X-Agent supports **300+ models** from all major providers:
 
-- **Google** - Gemini models
-- **Anthropic** - Claude models
-- **OpenAI** - GPT models
-- **Mistral AI** - Mistral models
-- **AWS Bedrock** - Various models
-- **xAI** - Grok models
-- **Groq** - Fast inference
-- **Cerebras** - High-performance models
+- **Anthropic** - Claude 3/4 models (Sonnet, Opus, Haiku)
+- **OpenAI** - GPT-4, GPT-4o, GPT-5, o1, o3, o4
+- **Google** - Gemini 2.0, 2.5, 3, 3.1, 3.5
+- **Meta** - Llama 3, 3.1, 3.2, 3.3, 4
+- **Mistral AI** - Mistral, Mixtral, Codestral
+- **xAI** - Grok 3, Grok 4
+- **Qwen** - Qwen 2.5, 3, 3.5, Coder
+- **DeepSeek** - DeepSeek V3, R1
+- **NVIDIA** - Nemotron models
+- **And 20+ more providers!**
 
 ## OpenRouter Integration
 
-X-Agent includes a built-in **OpenRouter module** that serves as a complete drop-in replacement for `@mariozechner/pi-ai`. This gives you access to **300+ models** across all providers through a single API.
+X-Agent includes a built-in **OpenRouter module** for direct access to 300+ models through a single API.
 
 ### Quick Start with OpenRouter
 
 ```javascript
-import { Agent } from "@mariozechner/x-agent";
-import { openRouterStream, getModel } from "@mariozechner/x-agent/openrouter";
+import { Agent } from "@ranag/x-agent";
+import { openRouterStream, getModel } from "@ranag/x-agent/openrouter";
 
 const agent = new Agent({
   initialState: {
@@ -130,12 +138,6 @@ const agent = new Agent({
       siteName: 'Your Site', // Optional: for ranking
     }, context);
   },
-});
-
-agent.subscribe((event) => {
-  if (event.type === "message_update") {
-    console.log(event.assistantMessageEvent.delta);
-  }
 });
 
 await agent.prompt("Hello!");
@@ -156,36 +158,36 @@ const agent = new Agent({
       ...options,
       apiKey: 'sk-or-...',
       modelId: model.id,
-      
+
       // Sampling parameters
       temperature: 0.7,
       top_p: 0.9,
       top_k: 50,
       frequency_penalty: 0.5,
       presence_penalty: 0.5,
-      
+
       // Output control
       maxTokens: 2048,
       stop: ['END'],
-      
+
       // Log probabilities
       logprobs: true,
       top_logprobs: 5,
-      
+
       // Structured outputs
       response_format: { type: 'json_object' },
-      
+
       // Tool calling
       tool_choice: 'auto', // or 'required', 'none', or { type: 'function', function: { name: '...' } }
       parallel_tool_calls: true,
-      
+
       // OpenRouter features
       transforms: ['middle-out'], // Context compression
       include_reasoning: true, // Enable thinking/reasoning
-      
+
       // Provider passthrough
       provider: { order: ['Anthropic'] },
-      
+
       // Site info for ranking
       siteUrl: 'https://yoursite.com',
       siteName: 'Your Site',
@@ -197,7 +199,7 @@ const agent = new Agent({
 ### Available OpenRouter Models
 
 ```javascript
-import { getModels, getModelsByProvider, getProviders } from "@mariozechner/x-agent/openrouter";
+import { getModels, getModelsByProvider, getProviders } from "@ranag/x-agent/openrouter";
 
 // Get all available models
 const allModels = await getModels();
@@ -212,13 +214,14 @@ const providers = await getProviders(); // ['anthropic', 'google', 'openai', ...
 
 ### Features
 
-- ✅ **All event types** - Identical to pi-ai (`start`, `text_*`, `thinking_*`, `toolcall_*`, `done`, `error`)
+- ✅ **All event types** - `start`, `text_*`, `thinking_*`, `toolcall_*`, `done`, `error`
 - ✅ **Full tool calling** - Streaming partial JSON parsing and validation
 - ✅ **Thinking/reasoning support** - Native support for reasoning models
 - ✅ **Image/multi-modal support** - Vision models work out of the box
 - ✅ **Context serialization** - Save/restore conversation state
 - ✅ **300+ models** - Access to all OpenRouter providers
 - ✅ **All OpenRouter parameters** - Full API coverage
+- ✅ **Non-streaming support** - Handles both SSE and JSON responses
 
 ## API Reference
 
@@ -229,7 +232,7 @@ const agent = new Agent({
   // Initial state
   initialState: {
     systemPrompt: "You are helpful.",
-    model: getModel("openai", "gpt-4o"),
+    model: getModel("anthropic/claude-sonnet-4"),
     thinkingLevel: "off",  // "off" | "minimal" | "low" | "medium" | "high" | "xhigh"
     tools: [myTool],
     messages: [],
@@ -287,7 +290,7 @@ await agent.continue();
 
 ```javascript
 agent.setSystemPrompt("New prompt");
-agent.setModel(getModel("openai", "gpt-4o"));
+agent.setModel(getModel("anthropic", "claude-sonnet-4"));
 agent.setThinkingLevel("medium");
 agent.setTools([myTool]);
 agent.replaceMessages(newMessages);
@@ -444,16 +447,18 @@ After building, you'll find these files in `dist/`:
 
 | File | Description | Size |
 |------|-------------|------|
-| `x-agent.min.js` | Minified ESM bundle | ~16 kB (gzip: 4.6 kB) |
+| `x-agent.min.js` | Minified ESM bundle | ~33 kB (gzip: 9.7 kB) |
 | `x-agent.min.js.map` | Source map for ESM | - |
-| `x-agent.umd.min.js` | Minified UMD bundle | ~16 kB (gzip: 4.9 kB) |
+| `x-agent.umd.min.js` | Minified UMD bundle | ~33 kB (gzip: 10 kB) |
 | `x-agent.umd.min.js.map` | Source map for UMD | - |
+| `x-agent-openrouter.min.js` | OpenRouter module (ESM) | ~21 kB (gzip: 6.8 kB) |
+| `x-agent-openrouter.umd.min.js` | OpenRouter module (UMD) | ~22 kB (gzip: 7 kB) |
 
 Built with **Bun.build()** - fast, no extra dependencies needed.
 
 ## Testing
 
-X-Agent includes a comprehensive test suite with **37 tests** covering:
+X-Agent includes a comprehensive test suite covering:
 
 - Agent class functionality
 - Agent loop behavior
@@ -483,10 +488,10 @@ bun test --watch
 
 ```
 test/
-├── agent.test.js           # Agent class tests (12 tests)
-├── agent-loop.test.js      # Agent loop tests (8 tests)
-├── e2e.test.js             # End-to-end tests (10 tests)
-├── bedrock-models.test.js  # Bedrock model tests (7 tests)
+├── agent.test.js           # Agent class tests
+├── agent-loop.test.js      # Agent loop tests
+├── e2e.test.js             # End-to-end tests
+├── bedrock-models.test.js  # Bedrock model tests
 └── utils/
     ├── calculate.js        # Calculator tool
     └── get-current-time.js # Time tool
@@ -498,18 +503,25 @@ test/
 src/
 ├── index.js              # Main entry point
 ├── types.js              # JSDoc type definitions
-├── proxy.js              # Proxy streaming utility
+├── logger.js             # Logging system (colored output)
 ├── agent/                # Agent module
 │   ├── index.js          # Module exports
 │   ├── agent.js          # Main Agent class
 │   ├── state.js          # State creation
 │   ├── events.js         # EventManager class
 │   └── queues.js         # QueueManager (steering/follow-up)
-└── loop/                 # Agent loop module
+├── loop/                 # Agent loop module
+│   ├── index.js          # Module exports
+│   ├── loop.js           # Main loop logic
+│   ├── stream.js         # Stream creation
+│   └── tools.js          # Tool execution
+└── openrouter/           # OpenRouter integration (pi-ai replacement)
     ├── index.js          # Module exports
-    ├── loop.js           # Main loop logic
-    ├── stream.js         # Stream creation
-    └── tools.js          # Tool execution
+    ├── client.js         # API client
+    ├── stream.js         # Event stream
+    ├── messages.js       # Message conversion
+    ├── tools.js          # Tool validation
+    └── models.js         # Model helpers
 ```
 
 ## Low-Level API
@@ -517,7 +529,7 @@ src/
 For direct control without the Agent class:
 
 ```javascript
-import { agentLoop, agentLoopContinue } from "@mariozechner/x-agent";
+import { agentLoop, agentLoopContinue } from "@ranag/x-agent";
 
 const context = {
   systemPrompt: "You are helpful.",
@@ -526,7 +538,7 @@ const context = {
 };
 
 const config = {
-  model: getModel("openai", "gpt-4o"),
+  model: getModel("anthropic/claude-sonnet-4"),
   convertToLlm: (msgs) => msgs.filter(m => ["user", "assistant", "toolResult"].includes(m.role)),
 };
 
@@ -542,12 +554,33 @@ for await (const event of agentLoopContinue(context, config)) {
 }
 ```
 
+## Development
+
+### Dev Server
+
+```bash
+# Start dev server with .env support
+bun run dev
+
+# Server runs at http://localhost:3000
+```
+
+### Environment Variables
+
+Create a `.env` file:
+
+```bash
+OPENROUTER_API_KEY=sk-or-v1-YOUR_KEY_HERE
+```
+
+The dev server automatically loads this and injects the API key into the test UI.
+
 ## License
 
 MIT
 
 ## Links
 
-- [GitHub](https://github.com/badlogic/x-agent)
-- [npm](https://www.npmjs.com/package/@mariozechner/x-agent)
-- [pi-ai](https://github.com/badlogic/pi-mono)
+- [GitHub](https://github.com/AR-92/x-agent)
+- [npm](https://www.npmjs.com/package/@ranag/x-agent)
+- [OpenRouter](https://openrouter.ai/)

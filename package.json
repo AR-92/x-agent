@@ -25,9 +25,7 @@
 		"test": "bun test --coverage",
 		"test:unit": "bun test"
 	},
-	"dependencies": {
-		"@mariozechner/pi-ai": "^0.55.0"
-	},
+	"dependencies": {},
 	"keywords": [
 		"ai",
 		"agent",
