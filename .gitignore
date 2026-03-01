@@ -3,6 +3,9 @@ dist
 coverage
 *.log
 .env
+.env.local
+.env.*.local
+config.js
 .DS_Store
 bun.lock
 package-lock.json
