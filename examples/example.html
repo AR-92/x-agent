@@ -1,137 +1,699 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html data-theme="light">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>X-Agent - Simple Example</title>
-  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Manus Lite</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <script>
+    tailwind.config = {
+      daisyui: {
+        themes: ["light", "dark"],
+      },
+    }
+  </script>
+  <style>
+    .theme-option {
+      background: transparent !important;
+      color: inherit !important;
+      border-radius: var(--rounded-btn, 0.5rem) !important;
+    }
+    .theme-dropdown-list {
+      display: flex !important;
+      flex-direction: column !important;
+      flex-wrap: nowrap !important;
+    }
+    .theme-dropdown-list > li {
+      display: block !important;
+      width: 100% !important;
+    }
+  </style>
 </head>
-<body class="min-h-screen bg-base-300 p-8">
-  <div class="max-w-2xl mx-auto">
-    <h1 class="text-3xl font-bold mb-6 text-primary">🤖 X-Agent - Simple Example</h1>
+<body class="bg-base-100 text-base-content min-h-screen font-sans antialiased">
 
-    <!-- API Key Input -->
-    <div class="card bg-base-200 shadow-xl mb-6">
-      <div class="card-body">
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text font-semibold">OpenRouter API Key</span>
-          </label>
-          <input type="password" id="apiKey" placeholder="sk-or-..." class="input input-bordered" />
+<!-- Logo Template (hidden) -->
+<template id="logoTemplate">
+  <div class="w-8 h-8 rounded-box flex items-center justify-center bg-base-200">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="130 245 230 230" width="20" height="20" class="w-6 h-6 text-primary">
+      <g>
+        <g>
+          <g transform="matrix(1, 0, 0, 1, 171.58522, 14.641378)">
+            <g transform="matrix(1, 0, 0, 1, 73.123965, -108.644679)">
+              <g transform="matrix(1, 0, 0, 1, -96.212367, 106.556072)"></g>
+              <g transform="matrix(1, 0, 0, 1, -96.212367, 106.556072)"></g>
+            </g>
+            <g transform="matrix(1, 0, 0, 1, 170.335073, 57.983076)">
+              <g transform="matrix(1, 0, 0, 1, -192.074377, 169.970846)"></g>
+              <g transform="matrix(1, 0, 0, 1, -192.074377, 169.970846)"></g>
+            </g>
+            <g transform="matrix(1, 0, 0, 1, 32.358464, 377.3195)">
+              <g transform="matrix(1, 0, 0, 1, -10.654114, -272.98291)">
+                <path fill="currentColor" d="M 118.928 304.856 L 87.648 296.786 C 86.708 296.546 85.718 296.546 84.768 296.786 L -7.532 320.776 C -8.502 320.016 -9.722 319.566 -11.052 319.566 C -14.222 319.566 -16.792 322.136 -16.792 325.306 L -16.792 344.486 C -16.792 346.266 -15.972 347.936 -14.562 349.026 C -13.542 349.816 -12.312 350.226 -11.052 350.226 C -10.572 350.226 -10.082 350.166 -9.612 350.046 L 110.528 318.836 C 113.558 318.056 116.658 316.996 119.728 315.696 C 121.988 314.736 123.398 312.446 123.208 309.986 C 123.028 307.536 121.298 305.466 118.918 304.856 Z M 155.398 189.906 C 152.108 188.136 148.188 188.186 144.958 189.996 L 120.018 198.236 C 119.518 198.406 119.038 198.636 118.598 198.936 C 114.228 201.896 111.618 206.876 111.618 212.246 L 111.618 261.076 C 111.618 268.826 109.338 276.236 105.038 282.516 C 100.178 289.596 93.058 294.646 85.038 296.716 L 84.818 296.776 C 82.268 297.416 80.478 299.696 80.468 302.316 C 80.458 304.936 82.228 307.236 84.768 307.896 L 116.048 315.966 C 116.518 316.086 116.998 316.146 117.478 316.146 C 118.238 316.146 118.998 315.996 119.718 315.696 C 127.918 312.226 135.258 307.176 141.528 300.696 C 154.238 287.636 161.228 270.196 161.228 251.606 L 161.228 199.696 C 161.228 195.556 158.968 191.796 155.378 189.906 Z"></path>
+                <path fill="currentColor" d="M 155.968 137.909 C 153.888 135.909 151.178 134.879 148.418 134.999 L 127.138 135.669 C 120.128 135.889 113.108 136.899 106.278 138.679 L -8.462 168.479 C -19.172 171.269 -29.047 176.869 -37.047 184.719 C -38.337 185.999 -39.527 187.269 -40.587 188.539 C -41.857 190.049 -42.277 192.099 -41.667 193.979 C -41.077 195.859 -39.557 197.299 -37.637 197.789 L -7.522 205.559 C -7.042 205.679 -6.562 205.739 -6.092 205.739 C -4.092 205.739 -2.192 204.689 -1.152 202.919 C 0.358 200.779 2.108 198.859 4.068 197.189 C 7.648 194.109 11.778 191.949 16.328 190.769 L 151.338 155.699 C 155.948 154.499 159.168 150.299 159.168 145.499 C 159.168 142.669 158.008 139.919 155.945 137.899 Z M -0.692 198.029 C -1.342 196.269 -2.822 194.939 -4.642 194.469 L -34.757 186.699 C -36.857 186.159 -39.087 186.849 -40.527 188.479 C -51.137 200.649 -56.977 216.409 -56.977 232.859 L -56.977 330.119 C -56.977 336.449 -52.757 341.959 -46.697 343.539 L -18.962 350.689 C -17.882 350.989 -16.722 351.139 -15.522 351.139 C -14.322 351.139 -13.212 350.989 -12.102 350.699 L -11.612 350.569 C -9.102 349.899 -7.362 347.619 -7.362 345.029 L -7.362 222.569 C -7.362 215.579 -5.292 208.919 -1.372 203.299 C -0.292 201.759 -0.042 199.789 -0.692 198.019 Z"></path>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+    </svg>
+  </div>
+</template>
+
+<!-- Settings Modal Trigger -->
+<button id="settingsTrigger" class="fixed top-4 right-4 z-50 w-10 h-10 rounded-btn bg-base-200 border border-base-300 shadow-md flex items-center justify-center cursor-pointer hover:bg-base-300 transition-all">
+  <i data-lucide="settings" class="w-5 h-5"></i>
+</button>
+
+<!-- Settings Modal -->
+<div id="settingsModal" class="fixed inset-0 z-[100] flex items-center justify-center p-0 hidden">
+  <div class="fixed inset-0 bg-base-300/10 backdrop-blur-[2px]"></div>
+  <div class="relative w-full h-[100dvh] md:h-[90vh] md:max-h-[560px] md:max-w-[720px] lg:max-w-[820px] bg-base-100 rounded-box md:rounded-box shadow-2xl border-t md:border border-base-300 flex overflow-hidden">
+    <aside class="
+      fixed md:relative left-0 top-0 bottom-0 h-full w-[180px] flex flex-col gap-1 border-r border-base-300 bg-base-100 z-20
+      md:translate-x-0 transition-transform duration-300 ease-in-out
+      translate-x-0
+    ">
+      <div class="px-3 pt-3 pb-2 m-2 rounded-box">
+        <div class="logo-container w-7 h-7"></div>
+      </div>
+      <div class="flex-1 overflow-y-auto px-1.5 py-2">
+        <ul class="menu w-full gap-0.5 p-0">
+          <li>
+            <button class="flex gap-2 items-center text-sm hover:bg-base-300 rounded-btn text-base-content">
+              <i data-lucide="user" class="w-4 h-4"></i>
+              <span>Account</span>
+            </button>
+          </li>
+          <li>
+            <button class="flex gap-2 items-center text-sm active bg-primary/10 text-primary rounded-btn">
+              <i data-lucide="settings" class="w-4 h-4 text-primary"></i>
+              <span>Settings</span>
+            </button>
+          </li>
+          <li>
+            <button class="flex gap-2 items-center text-sm hover:bg-base-300 rounded-btn text-base-content">
+              <i data-lucide="shield-check" class="w-4 h-4"></i>
+              <span>Permissions</span>
+            </button>
+          </li>
+          <li>
+            <button class="flex gap-2 items-center text-sm hover:bg-base-300 rounded-btn text-base-content">
+              <i data-lucide="bell" class="w-4 h-4"></i>
+              <span>Notifications</span>
+            </button>
+          </li>
+          <li>
+            <button class="flex gap-2 items-center text-sm hover:bg-base-300 rounded-btn text-base-content">
+              <i data-lucide="calendar-days" class="w-4 h-4"></i>
+              <span>Plans & Billing</span>
+            </button>
+          </li>
+          <li>
+            <button class="flex gap-2 items-center text-sm hover:bg-base-300 rounded-btn text-base-content">
+              <i data-lucide="credit-card" class="w-4 h-4"></i>
+              <span>Buy Credits</span>
+            </button>
+          </li>
+          <li>
+            <button class="flex gap-2 items-center text-sm hover:bg-base-300 rounded-btn text-base-content">
+              <i data-lucide="database" class="w-4 h-4"></i>
+              <span>Data Control</span>
+            </button>
+          </li>
+          <li>
+            <button class="flex gap-2 items-center text-sm hover:bg-base-300 rounded-btn text-base-content">
+              <i data-lucide="shield" class="w-4 h-4"></i>
+              <span>Security</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </aside>
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div class="flex items-center justify-between px-4 py-2.5 border-b border-base-300 shrink-0">
+        <div class="flex items-center gap-2">
+          <button id="mobileMenuBtn" class="btn btn-ghost btn-xs btn-circle md:hidden h-6 w-6 min-h-0 rounded-btn hover:bg-base-300">
+            <i data-lucide="text-align-start" class="w-4 h-4"></i>
+          </button>
+          <span class="text-base font-medium text-base-content">Settings</span>
+        </div>
+        <button id="closeModal" class="btn btn-ghost btn-sm btn-circle z-10 h-7 w-7 min-h-0 rounded-btn hover:bg-base-300">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <main class="flex-1 overflow-y-auto px-4 pb-3">
+        <div class="p-3">
+          <h3 class="text-base font-medium text-base-content mb-3">General</h3>
+          <div class="divide-y divide-base-300">
+            <div class="form-control flex flex-row xs:flex-row justify-between items-start py-2 border-b border-base-300 gap-2">
+              <div>
+                <label class="text-xs text-base-content/70 mb-0.5">Language</label>
+                <p class="text-xs text-base-content/50">Select the language for the interface</p>
+              </div>
+              <div class="relative">
+                <button class="btn btn-ghost font-normal flex gap-1.5 items-center btn-xs h-7 min-h-0 rounded-btn hover:bg-base-300 text-base-content">
+                  <span class="font-normal text-xs">English</span>
+                  <i data-lucide="chevron-down" class="w-3 h-3 transition-transform"></i>
+                </button>
+              </div>
+            </div>
+            <div class="form-control flex flex-row xs:flex-row justify-between items-start py-2 border-b border-base-300 gap-2">
+              <div>
+                <label class="text-xs text-base-content/70 mb-0.5">Theme</label>
+                <p class="text-xs text-base-content/50">Choose between light, dark, and system themes</p>
+              </div>
+              <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button" class="btn btn-ghost font-normal flex gap-1.5 items-center btn-xs h-7 min-h-0 rounded-btn hover:bg-base-300 text-base-content">
+                  <span class="font-normal text-xs" id="currentTheme">Light</span>
+                  <i data-lucide="chevron-down" class="w-3 h-3 transition-transform"></i>
+                </div>
+                <ul tabindex="0" class="dropdown-content z-[101] menu p-2 shadow-lg bg-base-200 rounded-box w-40 border border-base-300 max-h-48 overflow-y-auto theme-dropdown-list">
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Light</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Dark</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Cupcake</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Bumblebee</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Emerald</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Corporate</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Synthwave</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Retro</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Cyberpunk</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Valentine</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Halloween</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Garden</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Forest</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Aqua</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Lofi</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Pastel</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Fantasy</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Wireframe</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Black</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Luxury</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Dracula</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Cmyk</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Autumn</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Business</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Acid</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Lemonade</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Night</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Coffee</a></li>
+                  <li><a class="theme-option text-base-content hover:bg-base-300">Winter</a></li>
+                </ul>
+              </div>
+            </div>
+            <div class="form-control flex flex-row xs:flex-row justify-between items-start py-2 border-b border-base-300 gap-2">
+              <div>
+                <label class="text-xs text-base-content/70 mb-0.5">Time Format</label>
+                <p class="text-xs text-base-content/50">Select your preferred time format</p>
+              </div>
+              <div class="relative">
+                <button class="btn btn-ghost font-normal flex gap-1.5 items-center btn-xs h-7 min-h-0 rounded-btn hover:bg-base-300 text-base-content">
+                  <span class="font-normal text-xs">12-hour</span>
+                  <i data-lucide="chevron-down" class="w-3 h-3 transition-transform"></i>
+                </button>
+              </div>
+            </div>
+            <div class="form-control flex flex-row xs:flex-row justify-between items-start py-2 border-b border-base-300 gap-2">
+              <div>
+                <label class="text-xs text-base-content/70 mb-0.5">Date Format</label>
+                <p class="text-xs text-base-content/50">Select your preferred date format</p>
+              </div>
+              <div class="relative">
+                <button class="btn btn-ghost font-normal flex gap-1.5 items-center btn-xs h-7 min-h-0 rounded-btn hover:bg-base-300 text-base-content">
+                  <span class="font-normal text-xs">MM/DD/YYYY</span>
+                  <i data-lucide="chevron-down" class="w-3 h-3 transition-transform"></i>
+                </button>
+              </div>
+            </div>
+            <div class="form-control flex flex-row xs:flex-row justify-between items-start py-2 border-b border-base-300 gap-2">
+              <div>
+                <label class="text-xs text-base-content/70 mb-0.5">Timezone</label>
+                <p class="text-xs text-base-content/50">Set your local timezone</p>
+              </div>
+              <select class="select select-bordered select-sm rounded-btn w-32 text-base-content hover:bg-base-300 focus:border-primary">
+                <option value="UTC">UTC</option>
+                <option value="America/New_York">Eastern Time</option>
+                <option value="America/Chicago">Central Time</option>
+                <option value="America/Denver">Mountain Time</option>
+                <option value="America/Los_Angeles">Pacific Time</option>
+                <option value="Europe/London">London</option>
+                <option value="Europe/Paris">Paris</option>
+                <option value="Asia/Tokyo">Tokyo</option>
+                <option value="Asia/Shanghai">Shanghai</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<!-- Right Side Panel Toggle Button -->
+<button id="panelToggle" class="fixed top-4 right-20 z-40 w-10 h-10 rounded-btn bg-base-200 border border-base-300 shadow-md flex items-center justify-center text-base-content hover:bg-base-300 transition-all cursor-pointer">
+  <i data-lucide="panel-right" class="w-5 h-5"></i>
+</button>
+
+<!-- Main Content -->
+<div class="flex">
+  <div id="mainContent" class="flex-1 transition-all duration-300">
+    <div class="max-w-[820px] mx-auto px-6 py-12 space-y-8 mb-32">
+
+      <!-- Response 1 -->
+      <div>
+        <div class="flex items-center gap-3 mb-3">
+          <div class="logo-container"></div>
+          <span class="font-medium text-base-content">Accelerator</span>
+        </div>
+        <div class="pl-12 flex flex-col gap-3">
+          <p class="text-sm leading-relaxed text-base-content">I've carefully analyzed your request to build a comprehensive task management application.</p>
+          <div class="flex flex-col gap-2 w-fit">
+            <div class="badge badge-success gap-2 rounded-btn">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i>
+              Analyzing project requirements
+            </div>
+            <div class="badge badge-primary gap-2 rounded-btn">
+              <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i>
+              Setting up React + TypeScript
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Chat -->
-    <div class="card bg-base-200 shadow-xl">
-      <div class="card-body">
-        <div id="chat" class="h-96 overflow-y-auto border border-base-300 rounded-lg p-4 bg-base-300 mb-4"></div>
+      <!-- Response 2 -->
+      <div>
+        <div class="flex items-center gap-3 mb-3">
+          <div class="logo-container"></div>
+          <span class="font-medium text-base-content">Accelerator</span>
+        </div>
+        <div class="pl-12 flex flex-col gap-3">
+          <p class="text-sm leading-relaxed text-base-content">I've designed a complete landing page with a modern aesthetic.</p>
+          <div class="mockup-code bg-base-200 text-sm rounded-box">
+            <pre class="px-4"><code><span class="text-primary">interface</span> <span class="text-secondary">HeroProps</span> {
+  <span class="text-info">title</span>: <span class="text-success">string</span>;
+}</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Response 3 -->
+      <div>
+        <div class="flex items-center gap-3 mb-3">
+          <div class="logo-container"></div>
+          <span class="font-medium text-base-content">Accelerator</span>
+        </div>
+        <div class="pl-12 flex flex-col gap-3">
+          <p class="text-sm leading-relaxed text-base-content">I've generated the complete project structure with all necessary files.</p>
+          <div class="flex flex-col gap-2 w-fit">
+            <div class="badge badge-info gap-2 rounded-btn">
+              <i data-lucide="file-code" class="w-3.5 h-3.5"></i>
+              src/components/Hero.tsx
+            </div>
+            <div class="badge badge-info gap-2 rounded-btn">
+              <i data-lucide="file-code" class="w-3.5 h-3.5"></i>
+              src/components/Navbar.tsx
+            </div>
+            <div class="badge badge-warning gap-2 rounded-btn">
+              <i data-lucide="file-type" class="w-3.5 h-3.5"></i>
+              tailwind.config.js
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Response 4 -->
+      <div>
+        <div class="flex items-center gap-3 mb-3">
+          <div class="logo-container"></div>
+          <span class="font-medium text-base-content">Accelerator</span>
+        </div>
+        <div class="pl-12 flex flex-col gap-3">
+          <p class="text-sm leading-relaxed text-base-content">I encountered an issue during the build process.</p>
+          <div class="alert alert-error rounded-box">
+            <i data-lucide="alert-circle" class="w-5 h-5"></i>
+            <div>
+              <h4 class="font-medium text-base-content">Build Failed</h4>
+              <p class="text-sm text-base-content/70">Error: Module not found</p>
+            </div>
+          </div>
+          <div class="badge badge-primary gap-2 rounded-btn">
+            <i data-lucide="package-plus" class="w-3.5 h-3.5 animate-pulse"></i>
+            Installing react-router-dom
+          </div>
+        </div>
+      </div>
+
+      <!-- Response 5 -->
+      <div>
+        <div class="flex items-center gap-3 mb-3">
+          <div class="logo-container"></div>
+          <span class="font-medium text-base-content">Accelerator</span>
+        </div>
+        <div class="pl-12 flex flex-col gap-3">
+          <p class="text-sm leading-relaxed text-base-content">Let me analyze the requirements and determine the optimal architecture.</p>
+          <div class="bg-base-200 rounded-box p-4 text-sm">
+            <p class="font-medium mb-2 flex items-center gap-2 text-base-content">
+              <i data-lucide="brain" class="w-4 h-4"></i>
+              Reasoning Process
+            </p>
+            <ul class="space-y-2">
+              <li class="flex items-center gap-2 text-base-content">
+                <span class="loading loading-spinner loading-xs text-primary"></span>
+                Evaluating data fetching strategy
+              </li>
+              <li class="flex items-center gap-2 text-base-content">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-success"></i>
+                Performance requirements assessed
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Response 6 -->
+      <div>
+        <div class="flex items-center gap-3 mb-3">
+          <div class="logo-container"></div>
+          <span class="font-medium text-base-content">Accelerator</span>
+        </div>
+        <div class="pl-12 flex flex-col gap-3">
+          <p class="text-sm leading-relaxed text-base-content">Test suite completed successfully.</p>
+          <div class="mockup-terminal bg-base-200 rounded-box p-4 font-mono text-xs">
+            <p class="text-success">✓ PASS src/utils/format.test.ts</p>
+            <p class="text-success">✓ PASS src/utils/date.test.ts</p>
+            <p class="text-success">✓ PASS src/components/Button.test.tsx</p>
+            <p class="text-base-content/40 mt-2">Tests: 12 passed, 0 failed</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Response 7 -->
+      <div>
+        <div class="flex items-center gap-3 mb-3">
+          <div class="logo-container"></div>
+          <span class="font-medium text-base-content">Accelerator</span>
+        </div>
+        <div class="pl-12 flex flex-col gap-3">
+          <p class="text-sm leading-relaxed text-base-content">All tasks completed successfully!</p>
+          <div class="flex flex-col gap-2 w-fit">
+            <div class="badge badge-success gap-2 rounded-btn">
+              <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+              Hero section completed
+            </div>
+            <div class="badge badge-success gap-2 rounded-btn">
+              <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+              All tests passing
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div id="rightPanel" class="fixed top-0 right-0 h-full w-0 bg-base-100 border-l border-base-300 overflow-hidden z-30 transition-all duration-300">
+    <div class="w-[400px] h-full flex flex-col">
+      <div class="flex items-center justify-between p-4 border-b border-base-300 bg-base-200 rounded-t-box">
+        <h3 class="text-lg font-bold text-base-content">Response Details</h3>
+        <button id="closePanel" class="btn btn-sm btn-circle btn-ghost rounded-btn hover:bg-base-300">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      
+      <div class="flex-1 overflow-y-auto p-4 space-y-4">
+        <div class="card bg-base-200 rounded-box shadow-md">
+          <div class="card-body p-4">
+            <h4 class="card-title text-sm flex items-center gap-2 text-base-content">
+              <i data-lucide="code-2" class="w-4 h-4"></i>
+              Code Preview
+            </h4>
+            <div class="mockup-code bg-base-300 text-xs mt-2 rounded-box">
+              <pre class="px-2"><code><span class="text-primary">import</span> { useState } <span class="text-primary">from</span> <span class="text-success">'react'</span>;
+
+<span class="text-primary">function</span> <span class="text-secondary">Hero</span>() {
+  <span class="text-primary">return</span> (
+    &lt;<span class="text-info">div</span> <span class="text-info">className</span>=<span class="text-success">"hero"</span>&gt;
+    &lt;/<span class="text-info">div</span>&gt;
+  );
+}</code></pre>
+            </div>
+          </div>
+        </div>
         
-        <div class="flex gap-2">
-          <input type="text" id="userInput" placeholder="Type a message..." class="input input-bordered flex-1" />
-          <button id="sendBtn" class="btn btn-primary" onclick="sendMessage()">Send</button>
+        <div class="card bg-base-200 rounded-box shadow-md">
+          <div class="card-body p-4">
+            <h4 class="card-title text-sm flex items-center gap-2 text-base-content">
+              <i data-lucide="folder-tree" class="w-4 h-4"></i>
+              Project Structure
+            </h4>
+            <div class="text-xs font-mono mt-2 space-y-1">
+              <div class="flex items-center gap-2 hover:bg-base-300 rounded-btn px-2 py-1 cursor-pointer text-base-content">
+                <i data-lucide="folder" class="w-3.5 h-3.5 text-warning"></i>
+                src/
+              </div>
+              <div class="flex items-center gap-2 hover:bg-base-300 rounded-btn px-2 py-1 cursor-pointer pl-4 text-base-content">
+                <i data-lucide="folder" class="w-3.5 h-3.5 text-warning"></i>
+                components/
+              </div>
+              <div class="flex items-center gap-2 hover:bg-base-300 rounded-btn px-2 py-1 cursor-pointer pl-6 text-base-content">
+                <i data-lucide="file-code" class="w-3.5 h-3.5 text-info"></i>
+                Hero.tsx
+              </div>
+              <div class="flex items-center gap-2 hover:bg-base-300 rounded-btn px-2 py-1 cursor-pointer pl-6 text-base-content">
+                <i data-lucide="file-code" class="w-3.5 h-3.5 text-info"></i>
+                Navbar.tsx
+              </div>
+              <div class="flex items-center gap-2 hover:bg-base-300 rounded-btn px-2 py-1 cursor-pointer pl-4 text-base-content">
+                <i data-lucide="file-type" class="w-3.5 h-3.5 text-warning"></i>
+                App.tsx
+              </div>
+              <div class="flex items-center gap-2 hover:bg-base-300 rounded-btn px-2 py-1 cursor-pointer pl-4 text-base-content">
+                <i data-lucide="file-type" class="w-3.5 h-3.5 text-warning"></i>
+                index.css
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="stats stats-vertical bg-base-200 rounded-box shadow-md w-full">
+          <div class="stat">
+            <div class="stat-title text-base-content/70">Files Created</div>
+            <div class="stat-value text-primary">7</div>
+          </div>
+          <div class="stat">
+            <div class="stat-title text-base-content/70">Lines of Code</div>
+            <div class="stat-value text-secondary">342</div>
+          </div>
+          <div class="stat">
+            <div class="stat-title text-base-content/70">Tests Passed</div>
+            <div class="stat-value text-success">12/12</div>
+          </div>
         </div>
       </div>
     </div>
   </div>
+  
+  <div id="resizeHandle" class="fixed top-0 right-0 w-1 h-full cursor-col-resize z-40 hidden hover:bg-base-content/10 rounded-l-btn"></div>
+</div>
 
-  <script type="module">
-    import { Agent, getModel } from '../dist/x-agent.min.js';
-    import { openRouterStream } from '../dist/x-agent-openrouter.min.js';
+<!-- Gradient fade -->
+<div class="fixed bottom-24 left-0 right-0 bg-gradient-to-t from-base-100 to-transparent h-12 pointer-events-none z-10"></div>
 
-    let agent = null;
+<!-- Chat Input -->
+<div class="fixed bottom-0 left-0 right-0 p-4 bg-base-100 z-20">
+  <div class="max-w-[820px] mx-auto">
+    <div class="bg-base-200 rounded-box border border-base-300 shadow-lg focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+      <div id="tasksList" class="hidden px-4 pt-3 pb-2 border-b border-base-300">
+        <div class="space-y-2 max-h-48 overflow-y-auto">
+          <div class="flex items-center gap-2 text-sm">
+            <i data-lucide="check" class="w-3.5 h-3.5 text-success"></i>
+            <span class="line-through text-base-content/40">Analyze project requirements</span>
+          </div>
+          <div class="flex items-center gap-2 text-sm">
+            <i data-lucide="check" class="w-3.5 h-3.5 text-success"></i>
+            <span class="line-through text-base-content/40">Set up React + TypeScript</span>
+          </div>
+          <div class="flex items-center gap-2 text-sm">
+            <i data-lucide="loader-2" class="w-3.5 h-3.5 text-primary animate-spin"></i>
+            <span class="font-medium text-base-content">Deploy and present the landing page</span>
+          </div>
+        </div>
+      </div>
 
-    // Initialize agent
-    function initAgent() {
-      const apiKey = document.getElementById('apiKey').value.trim();
-      if (!apiKey) {
-        alert('Please enter your OpenRouter API key');
-        return null;
-      }
+      <button id="toggleTasks" class="w-full flex items-center gap-2 px-4 py-3 hover:bg-base-300 transition-colors rounded-t-box">
+        <i data-lucide="check" class="w-4 h-4 text-success"></i>
+        <span class="text-sm truncate flex-1 text-left text-base-content">Deploy and present the landing page to the user</span>
+        <span class="text-xs text-base-content/40">3 / 3</span>
+        <i data-lucide="chevron-up" class="w-4 h-4 text-base-content/40 transition-transform" id="chevronIcon"></i>
+      </button>
 
-      agent = new Agent({
-        initialState: {
-          systemPrompt: 'You are a helpful assistant.',
-          model: getModel('mistralai/mistral-small-3.1-24b-instruct:free'),
-        },
-        streamFn: async (model, context, options) => {
-          return openRouterStream({
-            ...options,
-            apiKey: apiKey,
-            modelId: model.id,
-          }, context);
-        },
-      });
+      <div class="divider divider-horizontal mx-4"></div>
 
-      agent.subscribe((event) => {
-        if (event.type === 'message_update' && event.assistantMessageEvent?.delta) {
-          appendToChat('assistant', event.assistantMessageEvent.delta, true);
-        }
-        if (event.type === 'agent_end') {
-          document.getElementById('sendBtn').disabled = false;
-        }
-      });
+      <div class="flex items-end gap-2 p-3">
+        <div class="flex items-center gap-1 flex-shrink-0">
+          <button class="btn btn-circle btn-ghost btn-sm rounded-btn hover:bg-base-300">
+            <i data-lucide="plus" class="w-5 h-5"></i>
+          </button>
+          <button class="btn btn-circle btn-ghost btn-sm rounded-btn hover:bg-base-300">
+            <i data-lucide="paperclip" class="w-4 h-4"></i>
+          </button>
+        </div>
 
-      return agent;
+        <div class="flex-1 min-h-[40px] max-h-[200px] overflow-y-auto">
+          <textarea
+            placeholder="Send message to Accelerator..."
+            class="textarea textarea-ghost w-full resize-none focus:outline-none text-sm bg-transparent py-2.5 text-base-content placeholder-base-content/30"
+            rows="1"
+          ></textarea>
+        </div>
+
+        <div class="flex items-center gap-1 flex-shrink-0">
+          <button class="btn btn-circle btn-ghost btn-sm rounded-btn hover:bg-base-300">
+            <i data-lucide="mic" class="w-5 h-5"></i>
+          </button>
+          <button class="btn btn-primary btn-circle btn-sm rounded-btn hover:bg-primary/90">
+            <i data-lucide="arrow-up" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  lucide.createIcons();
+
+  // Render logo in all containers
+  const logoTemplate = document.getElementById('logoTemplate');
+  const logoContent = logoTemplate.innerHTML;
+  document.querySelectorAll('.logo-container').forEach(container => {
+    container.innerHTML = logoContent;
+  });
+
+  const textarea = document.querySelector('textarea');
+  textarea.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+  });
+
+  const toggleBtn = document.getElementById('toggleTasks');
+  const tasksList = document.getElementById('tasksList');
+  const chevronIcon = document.getElementById('chevronIcon');
+
+  toggleBtn.addEventListener('click', function() {
+    const isHidden = tasksList.classList.contains('hidden');
+    if (isHidden) {
+      tasksList.classList.remove('hidden');
+      chevronIcon.style.transform = 'rotate(180deg)';
+    } else {
+      tasksList.classList.add('hidden');
+      chevronIcon.style.transform = 'rotate(0deg)';
     }
+  });
 
-    // Send message
-    window.sendMessage = async function() {
-      const input = document.getElementById('userInput');
-      const message = input.value.trim();
-      if (!message) return;
+  // Settings Modal
+  const settingsTrigger = document.getElementById('settingsTrigger');
+  const settingsModal = document.getElementById('settingsModal');
+  const closeModal = document.getElementById('closeModal');
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
 
-      if (!agent) agent = initAgent();
-      if (!agent) return;
+  settingsTrigger.addEventListener('click', () => {
+    settingsModal.classList.remove('hidden');
+  });
 
-      appendToChat('user', message);
-      input.value = '';
-      document.getElementById('sendBtn').disabled = true;
+  closeModal.addEventListener('click', () => {
+    settingsModal.classList.add('hidden');
+  });
 
-      try {
-        await agent.prompt(message);
-      } catch (error) {
-        appendToChat('error', error.message);
-        document.getElementById('sendBtn').disabled = false;
-      }
-    };
-
-    // Append to chat
-    function appendToChat(role, text, isDelta = false) {
-      const chat = document.getElementById('chat');
-      if (!isDelta) {
-        const div = document.createElement('div');
-        div.className = `chat chat-${role === 'user' ? 'end' : 'start'} mb-2`;
-        div.innerHTML = `
-          <div class="chat-bubble ${role === 'user' ? 'chat-bubble-primary' : 'chat-bubble-secondary'}">${escapeHtml(text)}</div>
-        `;
-        chat.appendChild(div);
-      } else {
-        let lastBubble = chat.querySelector('.chat-start:last-child .chat-bubble');
-        if (!lastBubble) {
-          const div = document.createElement('div');
-          div.className = 'chat chat-start mb-2';
-          div.innerHTML = `<div class="chat-bubble chat-bubble-secondary"></div>`;
-          chat.appendChild(div);
-          lastBubble = div.querySelector('.chat-bubble');
-        }
-        lastBubble.textContent += text;
-      }
-      chat.scrollTop = chat.scrollHeight;
+  // Close modal on backdrop click
+  settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal.querySelector('.fixed.inset-0')) {
+      settingsModal.classList.add('hidden');
     }
+  });
 
-    // Escape HTML
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-
-    // Handle Enter key
-    document.getElementById('userInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') sendMessage();
+  // Theme options
+  const currentThemeSpan = document.getElementById('currentTheme');
+  const themeMap = {
+    'Light': 'light',
+    'Dark': 'dark',
+    'Cupcake': 'cupcake',
+    'Bumblebee': 'bumblebee',
+    'Emerald': 'emerald',
+    'Corporate': 'corporate',
+    'Synthwave': 'synthwave',
+    'Retro': 'retro',
+    'Cyberpunk': 'cyberpunk',
+    'Valentine': 'valentine',
+    'Halloween': 'halloween',
+    'Garden': 'garden',
+    'Forest': 'forest',
+    'Aqua': 'aqua',
+    'Lofi': 'lofi',
+    'Pastel': 'pastel',
+    'Fantasy': 'fantasy',
+    'Wireframe': 'wireframe',
+    'Black': 'black',
+    'Luxury': 'luxury',
+    'Dracula': 'dracula',
+    'Cmyk': 'cmyk',
+    'Autumn': 'autumn',
+    'Business': 'business',
+    'Acid': 'acid',
+    'Lemonade': 'lemonade',
+    'Night': 'night',
+    'Coffee': 'coffee',
+    'Winter': 'winter'
+  };
+  document.querySelectorAll('.theme-option').forEach(option => {
+    option.addEventListener('click', function() {
+      const themeName = this.textContent.trim();
+      const theme = themeMap[themeName];
+      document.documentElement.setAttribute('data-theme', theme);
+      currentThemeSpan.textContent = themeName;
     });
-  </script>
+  });
+
+  // Panel toggle
+  const panelToggle = document.getElementById('panelToggle');
+  const closePanel = document.getElementById('closePanel');
+  const rightPanel = document.getElementById('rightPanel');
+  const resizeHandle = document.getElementById('resizeHandle');
+
+  panelToggle.addEventListener('click', () => {
+    rightPanel.classList.remove('w-0');
+    rightPanel.classList.add('w-[400px]');
+    resizeHandle.classList.remove('hidden');
+  });
+
+  closePanel.addEventListener('click', () => {
+    rightPanel.classList.remove('w-[400px]');
+    rightPanel.classList.add('w-0');
+    resizeHandle.classList.add('hidden');
+  });
+
+  // Resize
+  let isResizing = false;
+  resizeHandle.addEventListener('mousedown', () => {
+    isResizing = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+    const newWidth = window.innerWidth - e.clientX;
+    const clampedWidth = Math.max(200, Math.min(600, newWidth));
+    rightPanel.style.width = clampedWidth + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    isResizing = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+</script>
 </body>
 </html>
