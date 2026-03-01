@@ -456,6 +456,40 @@ After building, you'll find these files in `dist/`:
 
 Built with **Bun.build()** - fast, no extra dependencies needed.
 
+## Examples
+
+The `examples/` folder contains ready-to-use HTML examples:
+
+### 1. Full Test UI (`examples/index.html`)
+
+Complete test application with:
+- Model selector with search (300+ models)
+- System prompt configuration
+- Thinking level control
+- Tool execution (calculator, time)
+- Usage statistics
+- Steering and follow-up controls
+
+**Run with dev server:**
+```bash
+bun run dev
+# Open http://localhost:3000
+```
+
+### 2. Simple Example (`examples/example.html`)
+
+Minimal example showing basic usage:
+- Single API key input
+- Simple chat interface
+- Basic event handling
+- ~100 lines of code
+
+**Open directly in browser:**
+```bash
+# Just open the file in your browser
+open examples/example.html
+```
+
 ## Testing
 
 X-Agent includes a comprehensive test suite covering:

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>X-Agent - Simple Example</title>
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css">
+</head>
+<body class="min-h-screen bg-base-300 p-8">
+  <div class="max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6 text-primary">🤖 X-Agent - Simple Example</h1>
+
+    <!-- API Key Input -->
+    <div class="card bg-base-200 shadow-xl mb-6">
+      <div class="card-body">
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text font-semibold">OpenRouter API Key</span>
+          </label>
+          <input type="password" id="apiKey" placeholder="sk-or-..." class="input input-bordered" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat -->
+    <div class="card bg-base-200 shadow-xl">
+      <div class="card-body">
+        <div id="chat" class="h-96 overflow-y-auto border border-base-300 rounded-lg p-4 bg-base-300 mb-4"></div>
+        
+        <div class="flex gap-2">
+          <input type="text" id="userInput" placeholder="Type a message..." class="input input-bordered flex-1" />
+          <button id="sendBtn" class="btn btn-primary" onclick="sendMessage()">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { Agent, getModel } from '../dist/x-agent.min.js';
+    import { openRouterStream } from '../dist/x-agent-openrouter.min.js';
+
+    let agent = null;
+
+    // Initialize agent
+    function initAgent() {
+      const apiKey = document.getElementById('apiKey').value.trim();
+      if (!apiKey) {
+        alert('Please enter your OpenRouter API key');
+        return null;
+      }
+
+      agent = new Agent({
+        initialState: {
+          systemPrompt: 'You are a helpful assistant.',
+          model: getModel('mistralai/mistral-small-3.1-24b-instruct:free'),
+        },
+        streamFn: async (model, context, options) => {
+          return openRouterStream({
+            ...options,
+            apiKey: apiKey,
+            modelId: model.id,
+          }, context);
+        },
+      });
+
+      agent.subscribe((event) => {
+        if (event.type === 'message_update' && event.assistantMessageEvent?.delta) {
+          appendToChat('assistant', event.assistantMessageEvent.delta, true);
+        }
+        if (event.type === 'agent_end') {
+          document.getElementById('sendBtn').disabled = false;
+        }
+      });
+
+      return agent;
+    }
+
+    // Send message
+    window.sendMessage = async function() {
+      const input = document.getElementById('userInput');
+      const message = input.value.trim();
+      if (!message) return;
+
+      if (!agent) agent = initAgent();
+      if (!agent) return;
+
+      appendToChat('user', message);
+      input.value = '';
+      document.getElementById('sendBtn').disabled = true;
+
+      try {
+        await agent.prompt(message);
+      } catch (error) {
+        appendToChat('error', error.message);
+        document.getElementById('sendBtn').disabled = false;
+      }
+    };
+
+    // Append to chat
+    function appendToChat(role, text, isDelta = false) {
+      const chat = document.getElementById('chat');
+      if (!isDelta) {
+        const div = document.createElement('div');
+        div.className = `chat chat-${role === 'user' ? 'end' : 'start'} mb-2`;
+        div.innerHTML = `
+          <div class="chat-bubble ${role === 'user' ? 'chat-bubble-primary' : 'chat-bubble-secondary'}">${escapeHtml(text)}</div>
+        `;
+        chat.appendChild(div);
+      } else {
+        let lastBubble = chat.querySelector('.chat-start:last-child .chat-bubble');
+        if (!lastBubble) {
+          const div = document.createElement('div');
+          div.className = 'chat chat-start mb-2';
+          div.innerHTML = `<div class="chat-bubble chat-bubble-secondary"></div>`;
+          chat.appendChild(div);
+          lastBubble = div.querySelector('.chat-bubble');
+        }
+        lastBubble.textContent += text;
+      }
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    // Escape HTML
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Handle Enter key
+    document.getElementById('userInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+  </script>
+</body>
+</html>

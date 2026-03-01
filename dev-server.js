@@ -46,7 +46,7 @@ serve({
 		
 		// Serve index.html and inject API key
 		if (path === '/' || path === '/index.html') {
-			let html = readFileSync(join(ROOT, 'index.html'), 'utf-8');
+			let html = readFileSync(join(ROOT, 'examples', 'index.html'), 'utf-8');
 			
 			// Inject API key into the page
 			if (OPENROUTER_API_KEY) {
@@ -63,6 +63,22 @@ serve({
 			return new Response(html, {
 				headers: { 'Content-Type': 'text/html' }
 			});
+		}
+		
+		// Serve examples
+		if (path.startsWith('/examples/')) {
+			try {
+				const filePath = join(ROOT, path.slice(1));
+				const file = Bun.file(filePath);
+				
+				if (!(await file.exists())) {
+					return new Response('Not Found', { status: 404 });
+				}
+				
+				return new Response(file);
+			} catch (e) {
+				return new Response('Not Found', { status: 404 });
+			}
 		}
 		
 		// Serve static files
