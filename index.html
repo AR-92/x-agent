@@ -358,14 +358,25 @@
 
   <script type="module">
     // Load config (contains API key from .env)
-    import { OPENROUTER_API_KEY } from './config.js';
+    // In dev mode, API key is injected by dev server into window.OPENROUTER_API_KEY
+    let apiKeyToUse = window.OPENROUTER_API_KEY || '';
     
-    // Set API key if available from .env
-    if (OPENROUTER_API_KEY) {
+    // Try to load from config.js (production build)
+    if (!apiKeyToUse) {
+      try {
+        const config = await import('./config.js');
+        apiKeyToUse = config.OPENROUTER_API_KEY || '';
+      } catch (e) {
+        // config.js doesn't exist in dev mode
+      }
+    }
+    
+    // Set API key if available
+    if (apiKeyToUse) {
       document.addEventListener('DOMContentLoaded', () => {
         const apiKeyInput = document.getElementById('apiKey');
-        if (apiKeyInput && OPENROUTER_API_KEY) {
-          apiKeyInput.value = OPENROUTER_API_KEY;
+        if (apiKeyInput) {
+          apiKeyInput.value = apiKeyToUse;
         }
       });
     }
