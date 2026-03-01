@@ -1,7 +1,7 @@
 {
-	"name": "@mariozechner/x-agent",
+	"name": "@ranag/x-agent",
 	"version": "1.0.0",
-	"description": "Stateful AI agent with tool execution and event streaming - Browser ready",
+	"description": "Stateful AI agent with tool execution and event streaming - Bun powered",
 	"type": "module",
 	"main": "./dist/x-agent.umd.min.js",
 	"module": "./dist/x-agent.min.js",
@@ -38,14 +38,14 @@
 		"esm",
 		"bun"
 	],
-	"author": "Mario Zechner",
+	"author": "ranaG",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/badlogic/x-agent.git"
+		"url": "git+https://github.com/AR-92/x-agent.git"
 	},
 	"engines": {
-		"node": ">=20.0.0"
+		"bun": ">=1.0.0"
 	},
 	"devDependencies": {}
 }

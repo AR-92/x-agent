@@ -94,26 +94,8 @@
     }
     .main-content {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 20px;
-    }
-    @media (max-width: 900px) {
-      .main-content {
-        grid-template-columns: 1fr;
-      }
-    }
-    .chat-section, .events-section {
-      background: #16213e;
-      border-radius: 8px;
-      padding: 20px;
-      min-height: 500px;
-      display: flex;
-      flex-direction: column;
-    }
-    .chat-section h2, .events-section h2 {
-      margin-bottom: 15px;
-      color: #00d9ff;
-      font-size: 1.2em;
     }
     .chat-messages {
       flex: 1;
@@ -203,51 +185,6 @@
       flex-direction: column;
       gap: 5px;
     }
-    .events-log {
-      flex: 1;
-      overflow-y: auto;
-      border: 1px solid #0f3460;
-      border-radius: 4px;
-      padding: 10px;
-      background: #1a1a2e;
-      font-family: monospace;
-      font-size: 12px;
-      min-height: 400px;
-    }
-    .event {
-      padding: 5px 8px;
-      margin-bottom: 5px;
-      border-radius: 4px;
-      border-left: 3px solid;
-    }
-    .event.agent_start { border-color: #00d9ff; background: rgba(0, 217, 255, 0.1); }
-    .event.agent_end { border-color: #2ecc71; background: rgba(46, 204, 113, 0.1); }
-    .event.turn_start { border-color: #f39c12; background: rgba(243, 156, 18, 0.1); }
-    .event.turn_end { border-color: #27ae60; background: rgba(39, 174, 96, 0.1); }
-    .event.message_start { border-color: #3498db; background: rgba(52, 152, 219, 0.1); }
-    .event.message_update { border-color: #2980b9; background: rgba(41, 128, 185, 0.1); }
-    .event.message_end { border-color: #1abc9c; background: rgba(26, 188, 156, 0.1); }
-    .event.text_start { border-color: #9b59b6; }
-    .event.text_delta { border-color: #8e44ad; }
-    .event.text_end { border-color: #9b59b6; }
-    .event.thinking_start { border-color: #e74c3c; }
-    .event.thinking_delta { border-color: #c0392b; }
-    .event.thinking_end { border-color: #e74c3c; }
-    .event.toolcall_start { border-color: #1abc9c; }
-    .event.toolcall_delta { border-color: #16a085; }
-    .event.toolcall_end { border-color: #1abc9c; }
-    .event.tool_execution_start { border-color: #f39c12; }
-    .event.tool_execution_update { border-color: #e67e22; }
-    .event.tool_execution_end { border-color: #f39c12; }
-    .event.done { border-color: #2ecc71; background: rgba(46, 204, 113, 0.1); }
-    .event.error { border-color: #e74c3c; background: rgba(231, 76, 60, 0.2); }
-    .event-type {
-      font-weight: bold;
-      margin-right: 8px;
-    }
-    .event-details {
-      color: #888;
-    }
     .controls {
       display: flex;
       gap: 10px;
@@ -335,13 +272,6 @@
         </div>
         <div class="status idle" id="status">Status: Idle</div>
         <div class="usage-stats" id="usageStats" style="display: none;"></div>
-      </div>
-
-      <!-- Events Section -->
-      <div class="events-section">
-        <h2>📊 Event Log</h2>
-        <div class="events-log" id="eventsLog"></div>
-        <button class="btn btn-secondary clear-btn" onclick="clearEvents()">Clear Events</button>
       </div>
     </div>
   </div>
@@ -518,7 +448,6 @@
     // Handle agent events
     function handleAgentEvent(event) {
       log.debug('Received event:', event.type, event);
-      logEvent(event);
 
       switch (event.type) {
         case 'agent_start':
@@ -718,8 +647,6 @@
     // Add error message
     function addErrorMessage(error) {
       addMessage('error', error);
-      // Also log to event log
-      logEvent({ type: 'error', reason: 'error' });
     }
 
     // Show tool execution
@@ -730,38 +657,6 @@
     // Hide tool execution indicator
     function hideToolExecution() {
       // No-op, tool calls remain visible
-    }
-
-    // Log event to event log
-    function logEvent(event) {
-      const eventsLog = document.getElementById('eventsLog');
-      const eventEl = document.createElement('div');
-      eventEl.className = `event ${event.type}`;
-
-      let details = '';
-      if (event.type === 'message_update' && event.assistantMessageEvent?.delta) {
-        details = `delta: "${escapeHtml(event.assistantMessageEvent.delta.substring(0, 50))}${event.assistantMessageEvent.delta.length > 50 ? '...' : ''}"`;
-      } else if (event.type === 'text_delta') {
-        details = `delta: "${escapeHtml(event.delta?.substring(0, 50) || '')}${(event.delta?.length || 0) > 50 ? '...' : ''}"`;
-      } else if (event.type === 'thinking_delta') {
-        details = `delta: "${escapeHtml(event.delta?.substring(0, 50) || '')}${(event.delta?.length || 0) > 50 ? '...' : ''}"`;
-      } else if (event.type === 'toolcall_start') {
-        details = `tool: ${event.toolName}`;
-      } else if (event.type === 'tool_execution_start') {
-        details = `tool: ${event.toolName}, args: ${JSON.stringify(event.args).substring(0, 50)}...`;
-      } else if (event.type === 'done') {
-        details = `reason: ${event.reason}`;
-      } else if (event.type === 'error') {
-        details = `reason: ${event.reason}`;
-      }
-
-      eventEl.innerHTML = `
-        <span class="event-type">${event.type}</span>
-        <span class="event-details">${details}</span>
-      `;
-
-      eventsLog.appendChild(eventEl);
-      eventsLog.scrollTop = eventsLog.scrollHeight;
     }
 
     // Escape HTML
@@ -806,7 +701,6 @@
         abortController.abort();
         abortController = null;
         updateStatus('idle');
-        logEvent({ type: 'error', reason: 'aborted' });
       }
     };
 
@@ -822,7 +716,6 @@
       abortController = null;
       clearChat();
       updateStatus('idle');
-      logEvent({ type: 'agent_start', reason: 'reset' });
     };
 
     // Test steering
@@ -838,13 +731,6 @@
         content: 'Please summarize your previous response in one sentence.',
         timestamp: Date.now(),
       });
-
-      logEvent({ type: 'agent_start', reason: 'steering' });
-    };
-
-    // Clear events
-    window.clearEvents = function() {
-      document.getElementById('eventsLog').innerHTML = '';
     };
 
     // Load models from OpenRouter API using getModels()

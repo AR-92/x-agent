@@ -1,9 +1,9 @@
 # X-Agent
 
-**Stateful AI agent with tool execution and event streaming.** Built on `@mariozechner/pi-ai`.
+**Stateful AI agent with tool execution and event streaming.** Powered by Bun, built with OpenRouter.
 
-[![npm version](https://img.shields.io/npm/v/@mariozechner/x-agent.svg)](https://www.npmjs.com/package/@mariozechner/x-agent)
-[![License](https://img.shields.io/npm/l/@mariozechner/x-agent.svg)](https://github.com/badlogic/x-agent/blob/main/LICENSE)
+[![npm version](https://img.shields.io/npm/v/@ranag/x-agent.svg)](https://www.npmjs.com/package/@ranag/x-agent)
+[![License](https://img.shields.io/npm/l/@ranag/x-agent.svg)](https://github.com/AR-92/x-agent/blob/main/LICENSE)
 
 ## Features
 
@@ -13,19 +13,20 @@
 - **Steering & Follow-up** - Interrupt or extend agent workflows mid-execution
 - **Browser ready** - Works via CDN with no build step
 - **Bun powered** - Fast testing and building with Bun (no extra dependencies)
+- **OpenRouter native** - 300+ models from all providers (Anthropic, OpenAI, Google, etc.)
 
 ## Installation
 
 ### npm/Node.js
 
 ```bash
-npm install @mariozechner/x-agent
+npm install @ranag/x-agent
 ```
 
 ### Bun
 
 ```bash
-bun add @mariozechner/x-agent
+bun add @ranag/x-agent
 ```
 
 ### Browser (CDN / Script Tag)
