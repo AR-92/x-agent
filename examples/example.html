@@ -501,68 +501,13 @@
 <!-- Gradient fade -->
 <div class="fixed bottom-24 left-0 right-0 bg-gradient-to-t from-base-100 to-transparent h-12 pointer-events-none z-10"></div>
 
-<!-- Chat Input -->
-<div class="fixed bottom-0 left-0 right-0 p-4 bg-base-100 z-20">
-  <div class="max-w-[820px] mx-auto">
-    <div class="bg-base-200 rounded-box border border-base-300 shadow-lg focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-      <div id="tasksList" class="hidden px-4 pt-3 pb-2 border-b border-base-300">
-        <div class="space-y-2 max-h-48 overflow-y-auto">
-          <div class="flex items-center gap-2 text-sm">
-            <i data-lucide="check" class="w-3.5 h-3.5 text-success"></i>
-            <span class="line-through text-base-content/40">Analyze project requirements</span>
-          </div>
-          <div class="flex items-center gap-2 text-sm">
-            <i data-lucide="check" class="w-3.5 h-3.5 text-success"></i>
-            <span class="line-through text-base-content/40">Set up React + TypeScript</span>
-          </div>
-          <div class="flex items-center gap-2 text-sm">
-            <i data-lucide="loader-2" class="w-3.5 h-3.5 text-primary animate-spin"></i>
-            <span class="font-medium text-base-content">Deploy and present the landing page</span>
-          </div>
-        </div>
-      </div>
+<!-- Chat Input Container -->
+<div id="chatInputContainer"></div>
 
-      <button id="toggleTasks" class="w-full flex items-center gap-2 px-4 py-3 hover:bg-base-300 transition-colors rounded-t-box">
-        <i data-lucide="check" class="w-4 h-4 text-success"></i>
-        <span class="text-sm truncate flex-1 text-left text-base-content">Deploy and present the landing page to the user</span>
-        <span class="text-xs text-base-content/40">3 / 3</span>
-        <i data-lucide="chevron-up" class="w-4 h-4 text-base-content/40 transition-transform" id="chevronIcon"></i>
-      </button>
+<script type="module">
+  import { ChatInput } from './components/ChatInput.js';
 
-      <div class="divider divider-horizontal mx-4"></div>
-
-      <div class="flex items-end gap-2 p-3">
-        <div class="flex items-center gap-1 flex-shrink-0">
-          <button class="btn btn-circle btn-ghost btn-sm rounded-btn hover:bg-base-300">
-            <i data-lucide="plus" class="w-5 h-5"></i>
-          </button>
-          <button class="btn btn-circle btn-ghost btn-sm rounded-btn hover:bg-base-300">
-            <i data-lucide="paperclip" class="w-4 h-4"></i>
-          </button>
-        </div>
-
-        <div class="flex-1 min-h-[40px] max-h-[200px] overflow-y-auto">
-          <textarea
-            placeholder="Send message to Accelerator..."
-            class="textarea textarea-ghost w-full resize-none focus:outline-none text-sm bg-transparent py-2.5 text-base-content placeholder-base-content/30"
-            rows="1"
-          ></textarea>
-        </div>
-
-        <div class="flex items-center gap-1 flex-shrink-0">
-          <button class="btn btn-circle btn-ghost btn-sm rounded-btn hover:bg-base-300">
-            <i data-lucide="mic" class="w-5 h-5"></i>
-          </button>
-          <button class="btn btn-primary btn-circle btn-sm rounded-btn hover:bg-primary/90">
-            <i data-lucide="arrow-up" class="w-4 h-4"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
+  // Initialize Lucide icons for existing icons
   lucide.createIcons();
 
   // Render logo in all containers
@@ -572,27 +517,32 @@
     container.innerHTML = logoContent;
   });
 
-  const textarea = document.querySelector('textarea');
-  textarea.addEventListener('input', function() {
-    this.style.height = 'auto';
-    this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+  // Initialize ChatInput component
+  const chatInput = new ChatInput({
+    container: document.getElementById('chatInputContainer'),
+    placeholder: 'Send message to Accelerator...',
+    tasks: [
+      { text: 'Analyze project requirements', status: 'completed' },
+      { text: 'Set up React + TypeScript', status: 'completed' },
+      { text: 'Deploy and present the landing page', status: 'active' },
+    ],
+    onSend: (message) => {
+      console.log('Sent:', message);
+      // Add your send logic here
+    },
+    onAttachment: () => {
+      console.log('Attachment clicked');
+    },
+    onVoice: () => {
+      console.log('Voice clicked');
+    },
+    onPlus: () => {
+      console.log('Plus clicked');
+    },
   });
+</script>
 
-  const toggleBtn = document.getElementById('toggleTasks');
-  const tasksList = document.getElementById('tasksList');
-  const chevronIcon = document.getElementById('chevronIcon');
-
-  toggleBtn.addEventListener('click', function() {
-    const isHidden = tasksList.classList.contains('hidden');
-    if (isHidden) {
-      tasksList.classList.remove('hidden');
-      chevronIcon.style.transform = 'rotate(180deg)';
-    } else {
-      tasksList.classList.add('hidden');
-      chevronIcon.style.transform = 'rotate(0deg)';
-    }
-  });
-
+<script>
   // Settings Modal
   const settingsTrigger = document.getElementById('settingsTrigger');
   const settingsModal = document.getElementById('settingsModal');

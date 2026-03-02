@@ -1,24 +1,23 @@
 /**
  * ChatInput Component
  * A theme-aware chat input component with task list, attachments, and voice input.
+ * Extracted from examples/example.html
  * 
  * Usage:
  *   import { ChatInput } from './components/ChatInput.js';
  *   
  *   const chatInput = new ChatInput({
- *     container: document.getElementById('chat-container'),
- *     placeholder: 'Send message...',
+ *     container: document.body,
+ *     placeholder: 'Send message to Accelerator...',
+ *     tasks: [
+ *       { text: 'Task 1', status: 'completed' },
+ *       { text: 'Task 2', status: 'active' },
+ *     ],
  *     onSend: (message) => { console.log('Sent:', message); },
  *     onAttachment: () => { console.log('Attachment clicked'); },
  *     onVoice: () => { console.log('Voice clicked'); },
+ *     onPlus: () => { console.log('Plus clicked'); },
  *   });
- * 
- *   // Update tasks
- *   chatInput.setTasks([
- *     { text: 'Task 1', status: 'completed' },
- *     { text: 'Task 2', status: 'pending' },
- *     { text: 'Task 3', status: 'active' },
- *   ]);
  */
 
 export class ChatInput {
@@ -26,6 +25,7 @@ export class ChatInput {
     this.options = {
       container: null,
       placeholder: 'Send message...',
+      tasks: [],
       maxTextareaHeight: 200,
       onSend: null,
       onAttachment: null,
@@ -34,7 +34,7 @@ export class ChatInput {
       ...options,
     };
 
-    this.tasks = [];
+    this.tasks = this.options.tasks;
     this.isTasksVisible = false;
     this.element = null;
     
@@ -51,19 +51,28 @@ export class ChatInput {
     const container = document.createElement('div');
     container.className = 'fixed bottom-0 left-0 right-0 p-4 bg-base-100 z-20';
     
+    // Get initial task data
+    const completedCount = this.tasks.filter(t => t.status === 'completed').length;
+    const totalCount = this.tasks.length;
+    const activeTask = this.tasks.find(t => t.status === 'active') || this.tasks[this.tasks.length - 1];
+    const taskCountText = `${completedCount} / ${totalCount}`;
+    const activeTaskText = activeTask ? activeTask.text : '';
+
     container.innerHTML = `
       <div class="max-w-[820px] mx-auto">
         <div class="bg-base-200 rounded-box border border-base-300 shadow-lg focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
           <!-- Tasks List -->
           <div id="tasksList" class="hidden px-4 pt-3 pb-2 border-b border-base-300">
-            <div class="space-y-2 max-h-48 overflow-y-auto" id="tasksContent"></div>
+            <div class="space-y-2 max-h-48 overflow-y-auto" id="tasksContent">
+              ${this.renderTasksHTML()}
+            </div>
           </div>
 
           <!-- Toggle Tasks Button -->
           <button id="toggleTasks" class="w-full flex items-center gap-2 px-4 py-3 hover:bg-base-300 transition-colors rounded-t-box">
             <i data-lucide="check" class="w-4 h-4 text-success"></i>
-            <span id="activeTaskText" class="text-sm truncate flex-1 text-left text-base-content"></span>
-            <span id="taskCount" class="text-xs text-base-content/40"></span>
+            <span id="activeTaskText" class="text-sm truncate flex-1 text-left text-base-content">${this.escapeHtml(activeTaskText)}</span>
+            <span id="taskCount" class="text-xs text-base-content/40">${taskCountText}</span>
             <i data-lucide="chevron-up" id="chevronIcon" class="w-4 h-4 text-base-content/40 transition-transform"></i>
           </button>
 
@@ -117,6 +126,25 @@ export class ChatInput {
     this.attachmentBtn = container.querySelector('#attachmentBtn');
     this.voiceBtn = container.querySelector('#voiceBtn');
     this.sendBtn = container.querySelector('#sendBtn');
+  }
+
+  renderTasksHTML() {
+    return this.tasks.map(task => {
+      const isCompleted = task.status === 'completed';
+      const isPending = task.status === 'pending';
+      
+      return `
+        <div class="flex items-center gap-2 text-sm">
+          ${isCompleted 
+            ? '<i data-lucide="check" class="w-3.5 h-3.5 text-success"></i>'
+            : isPending
+              ? '<i data-lucide="loader-2" class="w-3.5 h-3.5 text-primary animate-spin"></i>'
+              : '<i data-lucide="circle" class="w-3.5 h-3.5 text-base-content/40"></i>'
+          }
+          <span class="${isCompleted ? 'line-through text-base-content/40' : 'text-base-content'}">${this.escapeHtml(task.text)}</span>
+        </div>
+      `;
+    }).join('');
   }
 
   attachEvents() {
@@ -191,22 +219,7 @@ export class ChatInput {
     }
 
     // Render tasks list
-    this.tasksContent.innerHTML = this.tasks.map(task => {
-      const isCompleted = task.status === 'completed';
-      const isPending = task.status === 'pending';
-      
-      return `
-        <div class="flex items-center gap-2 text-sm">
-          ${isCompleted 
-            ? '<i data-lucide="check" class="w-3.5 h-3.5 text-success"></i>'
-            : isPending
-              ? '<i data-lucide="loader-2" class="w-3.5 h-3.5 text-primary animate-spin"></i>'
-              : '<i data-lucide="circle" class="w-3.5 h-3.5 text-base-content/40"></i>'
-          }
-          <span class="${isCompleted ? 'line-through text-base-content/40' : 'text-base-content'}">${this.escapeHtml(task.text)}</span>
-        </div>
-      `;
-    }).join('');
+    this.tasksContent.innerHTML = this.renderTasksHTML();
 
     // Re-initialize Lucide icons
     if (window.lucide) {
