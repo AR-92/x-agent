@@ -234,89 +234,8 @@
     </div>
   </div>
 
-  <!-- Right Panel -->
-  <div id="rightPanel" class="fixed top-0 right-0 h-full w-0 bg-base-100 border-l border-base-300 overflow-hidden z-30 transition-all duration-300">
-    <div class="w-[400px] h-full flex flex-col">
-      <div class="flex items-center justify-between p-4 border-b border-base-300 bg-base-200 rounded-t-box">
-        <h3 class="text-lg font-bold text-base-content">Response Details</h3>
-        <button id="closePanel" class="btn btn-sm btn-circle btn-ghost rounded-btn hover:bg-base-300">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-      
-      <div class="flex-1 overflow-y-auto p-4 space-y-4">
-        <div class="card bg-base-200 rounded-box shadow-md">
-          <div class="card-body p-4">
-            <h4 class="card-title text-sm flex items-center gap-2 text-base-content">
-              <i data-lucide="code-2" class="w-4 h-4"></i>
-              Code Preview
-            </h4>
-            <div class="mockup-code bg-base-300 text-xs mt-2 rounded-box">
-              <pre class="px-2"><code><span class="text-primary">import</span> { useState } <span class="text-primary">from</span> <span class="text-success">'react'</span>;
-
-<span class="text-primary">function</span> <span class="text-secondary">Hero</span>() {
-  <span class="text-primary">return</span> (
-    &lt;<span class="text-info">div</span> <span class="text-info">className</span>=<span class="text-success">"hero"</span>&gt;
-    &lt;/<span class="text-info">div</span>&gt;
-  );
-}</code></pre>
-            </div>
-          </div>
-        </div>
-        
-        <div class="card bg-base-200 rounded-box shadow-md">
-          <div class="card-body p-4">
-            <h4 class="card-title text-sm flex items-center gap-2 text-base-content">
-              <i data-lucide="folder-tree" class="w-4 h-4"></i>
-              Project Structure
-            </h4>
-            <div class="text-xs font-mono mt-2 space-y-1">
-              <div class="flex items-center gap-2 hover:bg-base-300 rounded-btn px-2 py-1 cursor-pointer text-base-content">
-                <i data-lucide="folder" class="w-3.5 h-3.5 text-warning"></i>
-                src/
-              </div>
-              <div class="flex items-center gap-2 hover:bg-base-300 rounded-btn px-2 py-1 cursor-pointer pl-4 text-base-content">
-                <i data-lucide="folder" class="w-3.5 h-3.5 text-warning"></i>
-                components/
-              </div>
-              <div class="flex items-center gap-2 hover:bg-base-300 rounded-btn px-2 py-1 cursor-pointer pl-6 text-base-content">
-                <i data-lucide="file-code" class="w-3.5 h-3.5 text-info"></i>
-                Hero.tsx
-              </div>
-              <div class="flex items-center gap-2 hover:bg-base-300 rounded-btn px-2 py-1 cursor-pointer pl-6 text-base-content">
-                <i data-lucide="file-code" class="w-3.5 h-3.5 text-info"></i>
-                Navbar.tsx
-              </div>
-              <div class="flex items-center gap-2 hover:bg-base-300 rounded-btn px-2 py-1 cursor-pointer pl-4 text-base-content">
-                <i data-lucide="file-type" class="w-3.5 h-3.5 text-warning"></i>
-                App.tsx
-              </div>
-              <div class="flex items-center gap-2 hover:bg-base-300 rounded-btn px-2 py-1 cursor-pointer pl-4 text-base-content">
-                <i data-lucide="file-type" class="w-3.5 h-3.5 text-warning"></i>
-                index.css
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="stats stats-vertical bg-base-200 rounded-box shadow-md w-full">
-          <div class="stat">
-            <div class="stat-title text-base-content/70">Files Created</div>
-            <div class="stat-value text-primary">7</div>
-          </div>
-          <div class="stat">
-            <div class="stat-title text-base-content/70">Lines of Code</div>
-            <div class="stat-value text-secondary">342</div>
-          </div>
-          <div class="stat">
-            <div class="stat-title text-base-content/70">Tests Passed</div>
-            <div class="stat-value text-success">12/12</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
+  <!-- Right Panel Container -->
+  <div id="rightPanelContainer"></div>
   <div id="resizeHandle" class="fixed top-0 right-0 w-1 h-full cursor-col-resize z-40 hidden hover:bg-base-content/10 rounded-l-btn"></div>
 </div>
 
@@ -330,6 +249,7 @@
   import { ChatInput } from './components/ChatInput.js';
   import { SettingsModal } from './components/SettingsModal.js';
   import { Sidebar } from './components/Sidebar.js';
+  import { RightPanel } from './components/RightPanel.js';
 
   // Initialize Lucide icons for existing icons
   lucide.createIcons();
@@ -372,6 +292,49 @@
     onNavigate: (item, index) => {
       console.log('Navigated to:', item.label);
     },
+  });
+
+  // Initialize RightPanel component
+  const rightPanel = new RightPanel({
+    container: document.getElementById('rightPanelContainer'),
+    title: 'Response Details',
+    codePreview: {
+      title: 'Code Preview',
+      code: `import { useState } from 'react';
+
+function Hero() {
+  return (
+    <div className="hero">
+    </div>
+  );
+}`,
+    },
+    projectStructure: {
+      title: 'Project Structure',
+      files: [
+        { name: 'src/', type: 'folder', indent: 0 },
+        { name: 'components/', type: 'folder', indent: 1 },
+        { name: 'Hero.tsx', type: 'tsx', indent: 2 },
+        { name: 'Navbar.tsx', type: 'tsx', indent: 2 },
+        { name: 'App.tsx', type: 'tsx', indent: 1 },
+        { name: 'index.css', type: 'css', indent: 1 },
+      ],
+    },
+    stats: {
+      items: [
+        { label: 'Files Created', value: '7', color: 'text-primary' },
+        { label: 'Lines of Code', value: '342', color: 'text-secondary' },
+        { label: 'Tests Passed', value: '12/12', color: 'text-success' },
+      ],
+    },
+    onClose: () => {
+      console.log('Right panel closed');
+    },
+  });
+
+  // Wire up panel toggle button
+  document.getElementById('panelToggle').addEventListener('click', () => {
+    rightPanel.open();
   });
 
   // Initialize ChatInput component
@@ -423,45 +386,6 @@
   // Wire up settings trigger button
   document.getElementById('settingsTrigger').addEventListener('click', () => {
     settingsModal.open();
-  });
-
-  // Panel toggle
-  const panelToggle = document.getElementById('panelToggle');
-  const closePanel = document.getElementById('closePanel');
-  const rightPanel = document.getElementById('rightPanel');
-  const resizeHandle = document.getElementById('resizeHandle');
-
-  panelToggle.addEventListener('click', () => {
-    rightPanel.classList.remove('w-0');
-    rightPanel.classList.add('w-[400px]');
-    resizeHandle.classList.remove('hidden');
-  });
-
-  closePanel.addEventListener('click', () => {
-    rightPanel.classList.remove('w-[400px]');
-    rightPanel.classList.add('w-0');
-    resizeHandle.classList.add('hidden');
-  });
-
-  // Resize
-  let isResizing = false;
-  resizeHandle.addEventListener('mousedown', () => {
-    isResizing = true;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  });
-
-  document.addEventListener('mousemove', (e) => {
-    if (!isResizing) return;
-    const newWidth = window.innerWidth - e.clientX;
-    const clampedWidth = Math.max(200, Math.min(600, newWidth));
-    rightPanel.style.width = clampedWidth + 'px';
-  });
-
-  document.addEventListener('mouseup', () => {
-    isResizing = false;
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
   });
 </script>
 </body>
