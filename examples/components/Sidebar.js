@@ -61,11 +61,9 @@ export class Sidebar {
           <div class="relative flex flex-shrink-0 items-center justify-between gap-1 px-2 py-2">
             <div class="flex cursor-pointer items-center">
               ${this.options.logo ? `
-                <img alt="${this.options.logo.alt || 'Logo'}" src="${this.options.logo.src}" class="h-7 m-4 ms-3">
+                <img alt="${this.options.logo.alt || 'Logo'}" src="${this.options.logo.src || './assets/img/logo.svg'}" class="h-7 m-4 ms-3">
               ` : `
-                <div class="h-7 w-7 m-4 ms-3 rounded-box bg-primary flex items-center justify-center">
-                  <i data-lucide="zap" class="w-4 h-4 text-white"></i>
-                </div>
+                <img alt="Logo" src="./assets/img/logo.svg" class="h-7 m-4 ms-3">
               `}
               ${this.options.logo?.version ? `
                 <span class="text-base-content/40 self-end px-1 py-0.5 text-[10px]">${this.options.logo.version}</span>
