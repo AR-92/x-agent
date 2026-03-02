@@ -1,0 +1,14 @@
+    .theme-option {
+      background: transparent !important;
+      color: inherit !important;
+      border-radius: var(--rounded-btn, 0.5rem) !important;
+    }
+    .theme-dropdown-list {
+      display: flex !important;
+      flex-direction: column !important;
+      flex-wrap: nowrap !important;
+    }
+    .theme-dropdown-list > li {
+      display: block !important;
+      width: 100% !important;
+    }
