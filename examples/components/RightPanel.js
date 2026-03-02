@@ -109,11 +109,9 @@ export class RightPanel {
           </button>
         </div>
 
-        <!-- Content -->
-        <div style="flex: 1; overflow-y: auto; padding: 16px;">
-          ${this.options.codePreview ? this.renderCodePreview() : ''}
-          ${this.options.projectStructure ? this.renderProjectStructure() : ''}
-          ${this.options.stats ? this.renderStats() : ''}
+        <!-- Content (empty state) -->
+        <div style="flex: 1; overflow-y: auto; padding: 16px; display: flex; align-items: center; justify-content: center;">
+          <p style="color: var(--bc, #666); opacity: 0.5; font-size: 14px;">No content</p>
         </div>
       </div>
     `;
@@ -126,63 +124,15 @@ export class RightPanel {
   }
 
   renderCodePreview() {
-    const { code = '', title = 'Code Preview' } = this.options.codePreview;
-    const escaped = this.escapeHtml(code);
-    
-    return `
-      <div style="background: var(--b2, #f5f5f5); border-radius: 0.5rem; padding: 16px; margin-bottom: 16px;">
-        <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>
-          </svg>
-          ${title}
-        </h4>
-        <pre style="background: var(--b3, #ddd); padding: 8px; border-radius: 0.5rem; overflow-x: auto; font-size: 12px;"><code>${escaped}</code></pre>
-      </div>
-    `;
+    return '';
   }
 
   renderProjectStructure() {
-    const { title = 'Project Structure', files = [] } = this.options.projectStructure;
-    
-    return `
-      <div style="background: var(--b2, #f5f5f5); border-radius: 0.5rem; padding: 16px; margin-bottom: 16px;">
-        <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
-          </svg>
-          ${title}
-        </h4>
-        <div style="font-family: monospace; font-size: 12px;">
-          ${files.map(file => `
-            <div style="display: flex; align-items: center; gap: 8px; padding: 4px 8px; padding-left: ${file.indent ? (file.indent * 16 + 8) : 8}px; border-radius: 0.375rem; cursor: pointer;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: ${file.type === 'folder' ? '#d97706' : '#3b82f6'};">
-                ${file.type === 'folder' 
-                  ? '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>'
-                  : '<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/>'
-                }
-              </svg>
-              <span>${file.name}</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `;
+    return '';
   }
 
   renderStats() {
-    const { items = [] } = this.options.stats;
-    
-    return `
-      <div style="background: var(--b2, #f5f5f5); border-radius: 0.5rem; padding: 16px;">
-        ${items.map(stat => `
-          <div style="padding: 8px 0; border-bottom: 1px solid var(--b3, #ddd);">
-            <div style="font-size: 12px; color: var(--bc, #666); opacity: 0.7;">${stat.label}</div>
-            <div style="font-size: 24px; font-weight: 700; color: var(--p, #6366f1);">${stat.value}</div>
-          </div>
-        `).join('')}
-      </div>
-    `;
+    return '';
   }
 
   attachEvents() {

@@ -132,35 +132,6 @@ export const rightPanel = new RightPanel({
   minWidth: 250,
   maxWidth: 800,
   isOpen: true,
-  codePreview: {
-    title: 'Code Preview',
-    code: `import { useState } from 'react';
-
-function Hero() {
-  return (
-    <div className="hero">
-    </div>
-  );
-}`,
-  },
-  projectStructure: {
-    title: 'Project Structure',
-    files: [
-      { name: 'src/', type: 'folder', indent: 0 },
-      { name: 'components/', type: 'folder', indent: 1 },
-      { name: 'Hero.tsx', type: 'tsx', indent: 2 },
-      { name: 'Navbar.tsx', type: 'tsx', indent: 2 },
-      { name: 'App.tsx', type: 'tsx', indent: 1 },
-      { name: 'index.css', type: 'css', indent: 1 },
-    ],
-  },
-  stats: {
-    items: [
-      { label: 'Files Created', value: '7', color: 'text-primary' },
-      { label: 'Lines of Code', value: '342', color: 'text-secondary' },
-      { label: 'Tests Passed', value: '12/12', color: 'text-success' },
-    ],
-  },
   onClose: () => {
     console.log('Right panel closed');
   },
