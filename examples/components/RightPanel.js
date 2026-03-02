@@ -1,21 +1,6 @@
 /**
  * RightPanel Component
  * A theme-aware resizable right panel drawer.
- * 
- * Usage:
- *   import { RightPanel } from './components/RightPanel.js';
- *   
- *   const rightPanel = new RightPanel({
- *     container: document.getElementById('rightPanelContainer'),
- *     title: 'Response Details',
- *     width: 400,
- *     minWidth: 250,
- *     maxWidth: 800,
- *     isOpen: true,
- *     codePreview: { ... },
- *     projectStructure: { ... },
- *     stats: { ... },
- *   });
  */
 
 export class RightPanel {
@@ -40,13 +25,11 @@ export class RightPanel {
     this.currentWidth = this.options.width;
     this.element = null;
     this.resizeHandle = null;
-    this.panelContent = null;
     this.isResizing = false;
     
     this.render();
     this.attachEvents();
     
-    // Initialize Lucide icons
     if (window.lucide) {
       window.lucide.createIcons();
     }
@@ -54,31 +37,80 @@ export class RightPanel {
 
   render() {
     const container = document.createElement('div');
-    container.className = 'flex flex-row-reverse';
-    container.style.width = this.isOpen ? `${this.currentWidth}px` : '0';
-    container.style.transition = 'width 0.3s ease-in-out';
-    container.style.overflow = 'hidden';
-    container.style.flexShrink = '0';
-    container.style.height = '100vh';
+    container.style.cssText = `
+      position: relative;
+      width: ${this.isOpen ? this.currentWidth : 0}px;
+      height: 100vh;
+      flex-shrink: 0;
+      transition: width 0.3s ease-in-out;
+      overflow: hidden;
+    `;
     
     container.innerHTML = `
-      <!-- Resize Handle (on left edge of panel) -->
-      <div id="resizeHandle" class="w-2 cursor-col-resize z-50 hover:bg-primary/20 transition-colors flex-shrink-0 flex items-center justify-center" style="height: 100%;">
-        <div class="w-0.5 h-12 bg-base-content/50 rounded-full hover:bg-primary transition-colors"></div>
+      <!-- Resize Handle (LEFT edge of panel) -->
+      <div id="resizeHandle" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        cursor: col-resize;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        visibility: ${this.isOpen ? 'visible' : 'hidden'};
+      ">
+        <div style="
+          width: 1px;
+          height: 48px;
+          background: var(--bc, #666);
+          opacity: 0.5;
+          border-radius: 1px;
+          transition: all 0.2s;
+        "></div>
       </div>
       
       <!-- Panel Content -->
-      <div class="h-full overflow-hidden bg-base-100 border-s border-base-300 shadow-lg flex flex-col" style="width: ${this.currentWidth}px; flex-shrink: 0;">
+      <div style="
+        height: 100%;
+        overflow: hidden;
+        background: var(--b1, #fff);
+        border-left: 1px solid var(--b3, #ddd);
+        box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+      ">
         <!-- Header -->
-        <div class="flex items-center justify-between p-4 border-b border-base-300 bg-base-200 shrink-0">
-          <h3 class="text-lg font-bold text-base-content">${this.options.title}</h3>
-          <button id="closePanel" class="btn btn-sm btn-circle btn-ghost rounded-btn hover:bg-base-300">
-            <i data-lucide="x" class="w-5 h-5"></i>
+        <div style="
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 16px;
+          border-bottom: 1px solid var(--b3, #ddd);
+          background: var(--b2, #f5f5f5);
+          flex-shrink: 0;
+        ">
+          <h3 style="font-size: 18px; font-weight: 700; color: var(--bc, #333);">${this.options.title}</h3>
+          <button id="closePanel" style="
+            width: 28px;
+            height: 28px;
+            border-radius: 9999px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          ">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6 6 18M6 6l12 12"/>
+            </svg>
           </button>
         </div>
 
         <!-- Content -->
-        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+        <div style="flex: 1; overflow-y: auto; padding: 16px;">
           ${this.options.codePreview ? this.renderCodePreview() : ''}
           ${this.options.projectStructure ? this.renderProjectStructure() : ''}
           ${this.options.stats ? this.renderStats() : ''}
@@ -88,32 +120,24 @@ export class RightPanel {
 
     this.options.container.appendChild(container);
     this.element = container;
-    this.resizeHandle = container.firstElementChild;
-    this.panelContent = container.lastElementChild;
-    
-    // Cache DOM elements
+    this.resizeHandle = container.querySelector('#resizeHandle');
+    this.panelContent = container.querySelector('div[style*="background: var(--b1)"]');
     this.closeBtn = container.querySelector('#closePanel');
-    
-    // Set initial visibility
-    this.resizeHandle.style.visibility = this.isOpen ? 'visible' : 'hidden';
   }
 
   renderCodePreview() {
     const { code = '', title = 'Code Preview' } = this.options.codePreview;
     const escaped = this.escapeHtml(code);
-    const highlighted = this.simpleSyntaxHighlight(escaped);
     
     return `
-      <div class="card bg-base-200 rounded-box shadow-md">
-        <div class="card-body p-4">
-          <h4 class="card-title text-sm flex items-center gap-2 text-base-content">
-            <i data-lucide="code-2" class="w-4 h-4"></i>
-            ${title}
-          </h4>
-          <div class="mockup-code bg-base-300 text-xs mt-2 rounded-box">
-            <pre class="px-2"><code>${highlighted}</code></pre>
-          </div>
-        </div>
+      <div style="background: var(--b2, #f5f5f5); border-radius: 0.5rem; padding: 16px; margin-bottom: 16px;">
+        <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>
+          </svg>
+          ${title}
+        </h4>
+        <pre style="background: var(--b3, #ddd); padding: 8px; border-radius: 0.5rem; overflow-x: auto; font-size: 12px;"><code>${escaped}</code></pre>
       </div>
     `;
   }
@@ -122,21 +146,25 @@ export class RightPanel {
     const { title = 'Project Structure', files = [] } = this.options.projectStructure;
     
     return `
-      <div class="card bg-base-200 rounded-box shadow-md">
-        <div class="card-body p-4">
-          <h4 class="card-title text-sm flex items-center gap-2 text-base-content">
-            <i data-lucide="folder-tree" class="w-4 h-4"></i>
-            ${title}
-          </h4>
-          <div class="text-xs font-mono mt-2 space-y-1">
-            ${files.map(file => `
-              <div class="flex items-center gap-2 hover:bg-base-300 rounded-btn px-2 py-1 cursor-pointer text-base-content" style="padding-left: ${file.indent ? (file.indent * 16 + 8) : 8}px">
-                <i data-lucide="${file.type === 'folder' ? 'folder' : 'file-code'}" 
-                   class="w-3.5 h-3.5 ${file.type === 'folder' ? 'text-warning' : 'text-info'} shrink-0"></i>
-                <span class="truncate">${file.name}</span>
-              </div>
-            `).join('')}
-          </div>
+      <div style="background: var(--b2, #f5f5f5); border-radius: 0.5rem; padding: 16px; margin-bottom: 16px;">
+        <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
+          </svg>
+          ${title}
+        </h4>
+        <div style="font-family: monospace; font-size: 12px;">
+          ${files.map(file => `
+            <div style="display: flex; align-items: center; gap: 8px; padding: 4px 8px; padding-left: ${file.indent ? (file.indent * 16 + 8) : 8}px; border-radius: 0.375rem; cursor: pointer;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: ${file.type === 'folder' ? '#d97706' : '#3b82f6'};">
+                ${file.type === 'folder' 
+                  ? '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>'
+                  : '<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/>'
+                }
+              </svg>
+              <span>${file.name}</span>
+            </div>
+          `).join('')}
         </div>
       </div>
     `;
@@ -146,11 +174,11 @@ export class RightPanel {
     const { items = [] } = this.options.stats;
     
     return `
-      <div class="stats stats-vertical bg-base-200 rounded-box shadow-md w-full">
+      <div style="background: var(--b2, #f5f5f5); border-radius: 0.5rem; padding: 16px;">
         ${items.map(stat => `
-          <div class="stat">
-            <div class="stat-title text-base-content/70">${stat.label}</div>
-            <div class="stat-value ${stat.color || 'text-primary'}">${stat.value}</div>
+          <div style="padding: 8px 0; border-bottom: 1px solid var(--b3, #ddd);">
+            <div style="font-size: 12px; color: var(--bc, #666); opacity: 0.7;">${stat.label}</div>
+            <div style="font-size: 24px; font-weight: 700; color: var(--p, #6366f1);">${stat.value}</div>
           </div>
         `).join('')}
       </div>
@@ -158,12 +186,8 @@ export class RightPanel {
   }
 
   attachEvents() {
-    // Close button
-    this.closeBtn.addEventListener('click', () => {
-      this.close();
-    });
+    this.closeBtn.addEventListener('click', () => this.close());
 
-    // Resize handle - mousedown
     this.resizeHandle.addEventListener('mousedown', (e) => {
       this.isResizing = true;
       document.body.style.cursor = 'col-resize';
@@ -171,25 +195,14 @@ export class RightPanel {
       e.preventDefault();
     });
 
-    // Mouse move on document
     document.addEventListener('mousemove', (e) => {
       if (!this.isResizing) return;
-      
-      // Calculate width: distance from right edge of viewport to mouse
       const newWidth = window.innerWidth - e.clientX;
-      
-      // Clamp to min/max
-      const clampedWidth = Math.max(
-        this.options.minWidth,
-        Math.min(this.options.maxWidth, newWidth)
-      );
-      
-      // Update width
+      const clampedWidth = Math.max(this.options.minWidth, Math.min(this.options.maxWidth, newWidth));
       this.setWidth(clampedWidth);
       this.options.onResize?.(clampedWidth);
     });
 
-    // Mouse up on document
     document.addEventListener('mouseup', () => {
       if (this.isResizing) {
         this.isResizing = false;
@@ -214,36 +227,18 @@ export class RightPanel {
   }
 
   toggle() {
-    if (this.isOpen) {
-      this.close();
-    } else {
-      this.open();
-    }
+    this.isOpen ? this.close() : this.open();
   }
 
   setWidth(width) {
     this.currentWidth = width;
     this.element.style.width = `${width}px`;
-    this.panelContent.style.width = `${width}px`;
   }
 
   escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-
-  simpleSyntaxHighlight(code) {
-    let highlighted = code;
-    const keywords = ['import', 'from', 'const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'extends', 'new', 'this', 'async', 'await', 'try', 'catch', 'throw'];
-    keywords.forEach(keyword => {
-      const regex = new RegExp(`\\b(${keyword})\\b`, 'g');
-      highlighted = highlighted.replace(regex, '<span class="text-primary">$1</span>');
-    });
-    highlighted = highlighted.replace(/(['"`])(.*?)\1/g, '<span class="text-success">$1$2$1</span>');
-    highlighted = highlighted.replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)(?=\()/g, '<span class="text-secondary">$1</span>');
-    highlighted = highlighted.replace(/(\/\/.*$)/gm, '<span class="text-base-content/50">$1</span>');
-    return highlighted;
   }
 
   destroy() {
