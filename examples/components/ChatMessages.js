@@ -50,7 +50,7 @@ export class ChatMessages {
 
   render() {
     const container = document.createElement('div');
-    container.className = 'max-w-[820px] mx-auto px-6 py-12 space-y-8 mb-32';
+    container.className = 'max-w-[820px] mx-auto px-6 py-12 space-y-8 ';
     
     container.innerHTML = this.options.messages.map((message, index) => this.renderMessage(message, index)).join('');
     

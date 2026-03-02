@@ -1,28 +1,28 @@
 /**
  * RightPanel Component
- * A theme-aware right side panel for displaying response details, code previews, and project structure.
- * Extracted from examples/example.html
+ * A theme-aware resizable right panel drawer for displaying response details, code previews, and project structure.
+ * Sits alongside main content and can be resized.
  * 
  * Usage:
  *   import { RightPanel } from './components/RightPanel.js';
  *   
  *   const rightPanel = new RightPanel({
- *     container: document.body,
+ *     container: document.getElementById('rightPanelContainer'),
+ *     mainContent: document.getElementById('mainContent'),
  *     title: 'Response Details',
- *     codePreview: {
- *       language: 'javascript',
- *       code: `import { useState } from 'react';...`,
- *     },
- *     projectStructure: [
- *       { name: 'src/', type: 'folder', children: [...] },
- *       { name: 'App.tsx', type: 'file' },
- *     ],
- *     stats: [
- *       { label: 'Files Created', value: '7' },
- *       { label: 'Lines of Code', value: '342' },
- *     ],
+ *     width: 400,
+ *     minWidth: 250,
+ *     maxWidth: 800,
+ *     isOpen: false,
+ *     codePreview: { ... },
+ *     projectStructure: { ... },
+ *     stats: { ... },
  *     onClose: () => { console.log('Panel closed'); },
+ *     onResize: (width) => { console.log('Resized to:', width); },
  *   });
+ *   
+ *   // Toggle panel
+ *   rightPanel.toggle();
  *   
  *   // Open panel
  *   rightPanel.open();
@@ -35,20 +35,26 @@ export class RightPanel {
   constructor(options = {}) {
     this.options = {
       container: null,
+      mainContent: null,
       title: 'Response Details',
       width: 400,
-      minWidth: 200,
-      maxWidth: 600,
+      minWidth: 250,
+      maxWidth: 800,
+      isOpen: false,
       codePreview: null,
       projectStructure: null,
       stats: null,
       onClose: null,
+      onOpen: null,
+      onResize: null,
       ...options,
     };
 
-    this.isOpen = false;
-    this.element = null;
+    this.isOpen = this.options.isOpen;
     this.currentWidth = this.options.width;
+    this.element = null;
+    this.resizeHandle = null;
+    this.isResizing = false;
     
     this.render();
     this.attachEvents();
@@ -61,41 +67,59 @@ export class RightPanel {
 
   render() {
     const container = document.createElement('div');
-    container.className = 'fixed top-0 right-0 h-full w-0 bg-base-100 border-l border-base-300 overflow-hidden z-30 transition-all duration-300';
+    container.className = `relative flex transition-all duration-300 ease-in-out ${this.isOpen ? '' : 'w-0'}`;
+    container.style.width = this.isOpen ? `${this.currentWidth}px` : '0';
     
     container.innerHTML = `
-      <div class="w-[${this.options.width}px] h-full flex flex-col">
-        <!-- Header -->
-        <div class="flex items-center justify-between p-4 border-b border-base-300 bg-base-200 rounded-t-box">
-          <h3 class="text-lg font-bold text-base-content">${this.options.title}</h3>
-          <button id="closePanel" class="btn btn-sm btn-circle btn-ghost rounded-btn hover:bg-base-300">
-            <i data-lucide="x" class="w-5 h-5"></i>
-          </button>
-        </div>
-
-        <!-- Content -->
-        <div class="flex-1 overflow-y-auto p-4 space-y-4">
-          ${this.options.codePreview ? this.renderCodePreview() : ''}
-          ${this.options.projectStructure ? this.renderProjectStructure() : ''}
-          ${this.options.stats ? this.renderStats() : ''}
+      <!-- Resize Handle -->
+      <div id="resizeHandle" class="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize z-50 hover:bg-primary/20 transition-colors hidden">
+        <div class="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 -translate-x-3.5 flex items-center justify-center">
+          <div class="w-0.5 h-4 bg-base-content/30 rounded-full"></div>
         </div>
       </div>
       
-      <!-- Resize Handle -->
-      <div id="resizeHandle" class="fixed top-0 right-0 w-1 h-full cursor-col-resize z-40 hidden hover:bg-base-content/10 rounded-l-btn"></div>
+      <!-- Panel Content -->
+      <div class="flex-1 min-w-0 h-screen overflow-hidden bg-base-100 border-s border-base-300 shadow-lg">
+        <div class="h-full flex flex-col">
+          <!-- Header -->
+          <div class="flex items-center justify-between p-4 border-b border-base-300 bg-base-200 shrink-0">
+            <h3 class="text-lg font-bold text-base-content">${this.options.title}</h3>
+            <button id="closePanel" class="btn btn-sm btn-circle btn-ghost rounded-btn hover:bg-base-300">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+
+          <!-- Content -->
+          <div class="flex-1 overflow-y-auto p-4 space-y-4">
+            ${this.options.codePreview ? this.renderCodePreview() : ''}
+            ${this.options.projectStructure ? this.renderProjectStructure() : ''}
+            ${this.options.stats ? this.renderStats() : ''}
+          </div>
+        </div>
+      </div>
     `;
 
     this.options.container.appendChild(container);
     this.element = container;
+    this.resizeHandle = container.querySelector('#resizeHandle');
     
     // Cache DOM elements
     this.closeBtn = container.querySelector('#closePanel');
-    this.resizeHandle = container.querySelector('#resizeHandle');
-    this.panelContent = container.querySelector('.w-\\[400px\\]');
+    
+    // Set initial state
+    if (this.isOpen) {
+      this.resizeHandle.classList.remove('hidden');
+    }
   }
 
   renderCodePreview() {
     const { language = 'javascript', code = '', title = 'Code Preview' } = this.options.codePreview;
+    
+    // Escape HTML
+    const escaped = this.escapeHtml(code);
+    
+    // Simple syntax highlighting
+    const highlighted = this.simpleSyntaxHighlight(escaped);
     
     return `
       <div class="card bg-base-200 rounded-box shadow-md">
@@ -105,7 +129,7 @@ export class RightPanel {
             ${title}
           </h4>
           <div class="mockup-code bg-base-300 text-xs mt-2 rounded-box">
-            <pre class="px-2"><code>${this.escapeHtml(code)}</code></pre>
+            <pre class="px-2"><code>${highlighted}</code></pre>
           </div>
         </div>
       </div>
@@ -124,7 +148,7 @@ export class RightPanel {
           </h4>
           <div class="text-xs font-mono mt-2 space-y-1">
             ${files.map(file => `
-              <div class="flex items-center gap-2 hover:bg-base-300 rounded-btn px-2 py-1 cursor-pointer text-base-content ${file.indent ? 'pl-' + (file.indent * 4) : ''}">
+              <div class="flex items-center gap-2 hover:bg-base-300 rounded-btn px-2 py-1 cursor-pointer text-base-content" style="padding-left: ${file.indent ? (file.indent * 16 + 8) : 8}px">
                 <i data-lucide="${file.type === 'folder' ? 'folder' : file.type === 'tsx' || file.type === 'ts' || file.type === 'js' ? 'file-code' : 'file-type'}" 
                    class="w-3.5 h-3.5 ${file.type === 'folder' ? 'text-warning' : file.type === 'tsx' || file.type === 'ts' || file.type === 'js' ? 'text-info' : 'text-warning'} shrink-0"></i>
                 <span class="truncate">${file.name}</span>
@@ -158,48 +182,46 @@ export class RightPanel {
     });
 
     // Resize handle
-    let isResizing = false;
-    
     this.resizeHandle.addEventListener('mousedown', (e) => {
-      isResizing = true;
+      this.isResizing = true;
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
       e.preventDefault();
     });
 
     document.addEventListener('mousemove', (e) => {
-      if (!isResizing) return;
+      if (!this.isResizing) return;
       
-      const newWidth = window.innerWidth - e.clientX;
+      const newWidth = this.element.parentElement.offsetWidth - e.clientX;
       const clampedWidth = Math.max(
         this.options.minWidth,
         Math.min(this.options.maxWidth, newWidth)
       );
       
-      const panelDiv = this.element.querySelector('div > div');
-      if (panelDiv) {
-        panelDiv.style.width = clampedWidth + 'px';
-      }
-      this.currentWidth = clampedWidth;
+      this.setWidth(clampedWidth);
+      this.options.onResize?.(clampedWidth);
     });
 
     document.addEventListener('mouseup', () => {
-      isResizing = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
+      if (this.isResizing) {
+        this.isResizing = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
     });
   }
 
   open() {
     this.isOpen = true;
+    this.element.style.width = `${this.currentWidth}px`;
     this.element.classList.remove('w-0');
-    this.element.classList.add(`w-[${this.currentWidth}px]`);
     this.resizeHandle.classList.remove('hidden');
+    this.options.onOpen?.();
   }
 
   close() {
     this.isOpen = false;
-    this.element.classList.remove(`w-[${this.currentWidth}px]`);
+    this.element.style.width = '0';
     this.element.classList.add('w-0');
     this.resizeHandle.classList.add('hidden');
     this.options.onClose?.();
@@ -215,10 +237,7 @@ export class RightPanel {
 
   setWidth(width) {
     this.currentWidth = width;
-    const panelDiv = this.element.querySelector('div > div');
-    if (panelDiv) {
-      panelDiv.style.width = width + 'px';
-    }
+    this.element.style.width = `${width}px`;
   }
 
   updateCodePreview(codePreview) {
@@ -254,7 +273,31 @@ export class RightPanel {
   escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
-    return div.innerHTML;
+    return div.innerHTML
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  simpleSyntaxHighlight(code) {
+    let highlighted = code;
+    
+    // Keywords
+    const keywords = ['import', 'from', 'const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'extends', 'new', 'this', 'async', 'await', 'try', 'catch', 'throw'];
+    keywords.forEach(keyword => {
+      const regex = new RegExp(`\\b(${keyword})\\b`, 'g');
+      highlighted = highlighted.replace(regex, '<span class="text-primary">$1</span>');
+    });
+    
+    // Strings
+    highlighted = highlighted.replace(/(['"`])(.*?)\1/g, '<span class="text-success">$1$2$1</span>');
+    
+    // Function names
+    highlighted = highlighted.replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)(?=\()/g, '<span class="text-secondary">$1</span>');
+    
+    // Comments
+    highlighted = highlighted.replace(/(\/\/.*$)/gm, '<span class="text-base-content/50">$1</span>');
+    
+    return highlighted;
   }
 
   destroy() {

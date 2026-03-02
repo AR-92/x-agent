@@ -32,26 +32,23 @@
   <i data-lucide="panel-right" class="w-5 h-5"></i>
 </button>
 
-<!-- Left Sidebar Container -->
-<div id="sidebarContainer"></div>
-
-<!-- Main Content -->
-<div class="flex">
-  <div id="mainContent" class="flex-1 transition-all duration-300">
+<!-- App Container -->
+<div class="flex h-screen overflow-hidden">
+  <!-- Left Sidebar Container -->
+  <div id="sidebarContainer"></div>
+  
+  <!-- Main Content -->
+  <div id="mainContent" class="flex-1 flex flex-col overflow-hidden">
     <!-- Chat Messages Container -->
-    <div id="chatMessagesContainer"></div>
+    <div id="chatMessagesContainer" class="flex-1 overflow-y-auto"></div>
+    
+    <!-- Chat Input Container -->
+    <div id="chatInputContainer" class="shrink-0"></div>
   </div>
 
   <!-- Right Panel Container -->
   <div id="rightPanelContainer"></div>
-  <div id="resizeHandle" class="fixed top-0 right-0 w-1 h-full cursor-col-resize z-40 hidden hover:bg-base-content/10 rounded-l-btn"></div>
 </div>
-
-<!-- Gradient fade -->
-<div class="fixed bottom-24 left-0 right-0 bg-gradient-to-t from-base-100 to-transparent h-12 pointer-events-none z-10"></div>
-
-<!-- Chat Input Container -->
-<div id="chatInputContainer"></div>
 
 <script type="module" src="./lib/example.js"></script>
 </body>

@@ -127,7 +127,12 @@ export const sidebar = new Sidebar({
 // Initialize RightPanel component
 export const rightPanel = new RightPanel({
   container: document.getElementById('rightPanelContainer'),
+  mainContent: document.getElementById('mainContent'),
   title: 'Response Details',
+  width: 400,
+  minWidth: 250,
+  maxWidth: 800,
+  isOpen: true,
   codePreview: {
     title: 'Code Preview',
     code: `import { useState } from 'react';
@@ -159,6 +164,12 @@ function Hero() {
   },
   onClose: () => {
     console.log('Right panel closed');
+  },
+  onOpen: () => {
+    console.log('Right panel opened');
+  },
+  onResize: (width) => {
+    console.log('Resized to:', width);
   },
 });
 
