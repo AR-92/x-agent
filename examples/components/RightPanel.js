@@ -1,7 +1,6 @@
 /**
  * RightPanel Component
- * A theme-aware resizable right panel drawer for displaying response details, code previews, and project structure.
- * Sits alongside main content and can be resized.
+ * A theme-aware resizable right panel drawer.
  * 
  * Usage:
  *   import { RightPanel } from './components/RightPanel.js';
@@ -12,12 +11,10 @@
  *     width: 400,
  *     minWidth: 250,
  *     maxWidth: 800,
- *     isOpen: false,
+ *     isOpen: true,
  *     codePreview: { ... },
  *     projectStructure: { ... },
  *     stats: { ... },
- *     onClose: () => { console.log('Panel closed'); },
- *     onResize: (width) => { console.log('Resized to:', width); },
  *   });
  */
 
@@ -29,7 +26,7 @@ export class RightPanel {
       width: 400,
       minWidth: 250,
       maxWidth: 800,
-      isOpen: false,
+      isOpen: true,
       codePreview: null,
       projectStructure: null,
       stats: null,
@@ -42,7 +39,6 @@ export class RightPanel {
     this.isOpen = this.options.isOpen;
     this.currentWidth = this.options.width;
     this.element = null;
-    this.panelContent = null;
     this.resizeHandle = null;
     this.isResizing = false;
     
@@ -57,15 +53,21 @@ export class RightPanel {
 
   render() {
     const container = document.createElement('div');
-    container.className = 'flex';
+    container.className = 'flex flex-row-reverse';
     container.style.width = this.isOpen ? `${this.currentWidth}px` : '0';
     container.style.transition = 'width 0.3s ease-in-out';
     container.style.overflow = 'hidden';
     container.style.flexShrink = '0';
+    container.style.height = '100vh';
     
     container.innerHTML = `
+      <!-- Resize Handle (on left edge) -->
+      <div id="resizeHandle" class="w-2 cursor-col-resize z-50 hover:bg-primary/20 transition-colors flex-shrink-0 flex items-center justify-center" style="height: 100%;">
+        <div class="w-0.5 h-12 bg-base-content/50 rounded-full hover:bg-primary transition-colors"></div>
+      </div>
+      
       <!-- Panel Content -->
-      <div class="h-screen overflow-hidden bg-base-100 border-s border-base-300 shadow-lg flex flex-col" style="width: ${this.currentWidth}px;">
+      <div class="h-full overflow-hidden bg-base-100 border-s border-base-300 shadow-lg flex flex-col" style="width: ${this.currentWidth}px; flex-shrink: 0;">
         <!-- Header -->
         <div class="flex items-center justify-between p-4 border-b border-base-300 bg-base-200 shrink-0">
           <h3 class="text-lg font-bold text-base-content">${this.options.title}</h3>
@@ -81,19 +83,12 @@ export class RightPanel {
           ${this.options.stats ? this.renderStats() : ''}
         </div>
       </div>
-      
-      <!-- Resize Handle -->
-      <div id="resizeHandle" class="w-1 cursor-col-resize z-50 hover:bg-primary/20 transition-colors flex-shrink-0" style="height: 100%;">
-        <div class="h-full w-full flex items-center justify-center">
-          <div class="w-0.5 h-8 bg-base-content/30 rounded-full"></div>
-        </div>
-      </div>
     `;
 
     this.options.container.appendChild(container);
     this.element = container;
-    this.panelContent = container.firstElementChild;
     this.resizeHandle = container.querySelector('#resizeHandle');
+    this.panelContent = container.lastElementChild;
     
     // Cache DOM elements
     this.closeBtn = container.querySelector('#closePanel');
@@ -103,12 +98,8 @@ export class RightPanel {
   }
 
   renderCodePreview() {
-    const { language = 'javascript', code = '', title = 'Code Preview' } = this.options.codePreview;
-    
-    // Escape HTML
+    const { code = '', title = 'Code Preview' } = this.options.codePreview;
     const escaped = this.escapeHtml(code);
-    
-    // Simple syntax highlighting
     const highlighted = this.simpleSyntaxHighlight(escaped);
     
     return `
@@ -139,8 +130,8 @@ export class RightPanel {
           <div class="text-xs font-mono mt-2 space-y-1">
             ${files.map(file => `
               <div class="flex items-center gap-2 hover:bg-base-300 rounded-btn px-2 py-1 cursor-pointer text-base-content" style="padding-left: ${file.indent ? (file.indent * 16 + 8) : 8}px">
-                <i data-lucide="${file.type === 'folder' ? 'folder' : file.type === 'tsx' || file.type === 'ts' || file.type === 'js' ? 'file-code' : 'file-type'}" 
-                   class="w-3.5 h-3.5 ${file.type === 'folder' ? 'text-warning' : file.type === 'tsx' || file.type === 'ts' || file.type === 'js' ? 'text-info' : 'text-warning'} shrink-0"></i>
+                <i data-lucide="${file.type === 'folder' ? 'folder' : 'file-code'}" 
+                   class="w-3.5 h-3.5 ${file.type === 'folder' ? 'text-warning' : 'text-info'} shrink-0"></i>
                 <span class="truncate">${file.name}</span>
               </div>
             `).join('')}
@@ -171,31 +162,33 @@ export class RightPanel {
       this.close();
     });
 
-    // Resize handle
+    // Resize handle - mousedown
     this.resizeHandle.addEventListener('mousedown', (e) => {
       this.isResizing = true;
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
       e.preventDefault();
-      e.stopPropagation();
     });
 
+    // Mouse move on document
     document.addEventListener('mousemove', (e) => {
       if (!this.isResizing) return;
       
-      // Calculate new width based on distance from right edge of viewport
-      const rect = this.element.getBoundingClientRect();
-      const newWidth = rect.right - e.clientX;
+      // Calculate width: distance from right edge of viewport to mouse
+      const newWidth = window.innerWidth - e.clientX;
       
+      // Clamp to min/max
       const clampedWidth = Math.max(
         this.options.minWidth,
         Math.min(this.options.maxWidth, newWidth)
       );
       
+      // Update width
       this.setWidth(clampedWidth);
       this.options.onResize?.(clampedWidth);
     });
 
+    // Mouse up on document
     document.addEventListener('mouseup', () => {
       if (this.isResizing) {
         this.isResizing = false;
@@ -233,63 +226,22 @@ export class RightPanel {
     this.panelContent.style.width = `${width}px`;
   }
 
-  updateCodePreview(codePreview) {
-    this.options.codePreview = codePreview;
-    const existing = this.element.querySelector('.card:has([data-lucide="code-2"])');
-    if (existing) {
-      existing.outerHTML = this.renderCodePreview();
-      if (window.lucide) {
-        window.lucide.createIcons();
-      }
-    }
-  }
-
-  updateProjectStructure(projectStructure) {
-    this.options.projectStructure = projectStructure;
-    const existing = this.element.querySelector('.card:has([data-lucide="folder-tree"])');
-    if (existing) {
-      existing.outerHTML = this.renderProjectStructure();
-      if (window.lucide) {
-        window.lucide.createIcons();
-      }
-    }
-  }
-
-  updateStats(stats) {
-    this.options.stats = stats;
-    const existing = this.element.querySelector('.stats');
-    if (existing) {
-      existing.outerHTML = this.renderStats();
-    }
-  }
-
   escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
-    return div.innerHTML
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+    return div.innerHTML.replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   simpleSyntaxHighlight(code) {
     let highlighted = code;
-    
-    // Keywords
     const keywords = ['import', 'from', 'const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'extends', 'new', 'this', 'async', 'await', 'try', 'catch', 'throw'];
     keywords.forEach(keyword => {
       const regex = new RegExp(`\\b(${keyword})\\b`, 'g');
       highlighted = highlighted.replace(regex, '<span class="text-primary">$1</span>');
     });
-    
-    // Strings
     highlighted = highlighted.replace(/(['"`])(.*?)\1/g, '<span class="text-success">$1$2$1</span>');
-    
-    // Function names
     highlighted = highlighted.replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)(?=\()/g, '<span class="text-secondary">$1</span>');
-    
-    // Comments
     highlighted = highlighted.replace(/(\/\/.*$)/gm, '<span class="text-base-content/50">$1</span>');
-    
     return highlighted;
   }
 
@@ -298,5 +250,4 @@ export class RightPanel {
   }
 }
 
-// Export default for convenience
 export default RightPanel;
