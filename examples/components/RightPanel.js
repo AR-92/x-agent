@@ -40,6 +40,7 @@ export class RightPanel {
     this.currentWidth = this.options.width;
     this.element = null;
     this.resizeHandle = null;
+    this.panelContent = null;
     this.isResizing = false;
     
     this.render();
@@ -53,7 +54,7 @@ export class RightPanel {
 
   render() {
     const container = document.createElement('div');
-    container.className = 'flex flex-row-reverse';
+    container.className = 'flex';
     container.style.width = this.isOpen ? `${this.currentWidth}px` : '0';
     container.style.transition = 'width 0.3s ease-in-out';
     container.style.overflow = 'hidden';
@@ -61,11 +62,6 @@ export class RightPanel {
     container.style.height = '100vh';
     
     container.innerHTML = `
-      <!-- Resize Handle (on left edge) -->
-      <div id="resizeHandle" class="w-2 cursor-col-resize z-50 hover:bg-primary/20 transition-colors flex-shrink-0 flex items-center justify-center" style="height: 100%;">
-        <div class="w-0.5 h-12 bg-base-content/50 rounded-full hover:bg-primary transition-colors"></div>
-      </div>
-      
       <!-- Panel Content -->
       <div class="h-full overflow-hidden bg-base-100 border-s border-base-300 shadow-lg flex flex-col" style="width: ${this.currentWidth}px; flex-shrink: 0;">
         <!-- Header -->
@@ -83,12 +79,17 @@ export class RightPanel {
           ${this.options.stats ? this.renderStats() : ''}
         </div>
       </div>
+      
+      <!-- Resize Handle (on right edge) -->
+      <div id="resizeHandle" class="w-2 cursor-col-resize z-50 hover:bg-primary/20 transition-colors flex-shrink-0 flex items-center justify-center" style="height: 100%;">
+        <div class="w-0.5 h-12 bg-base-content/50 rounded-full hover:bg-primary transition-colors"></div>
+      </div>
     `;
 
     this.options.container.appendChild(container);
     this.element = container;
+    this.panelContent = container.firstElementChild;
     this.resizeHandle = container.querySelector('#resizeHandle');
-    this.panelContent = container.lastElementChild;
     
     // Cache DOM elements
     this.closeBtn = container.querySelector('#closePanel');
@@ -174,8 +175,9 @@ export class RightPanel {
     document.addEventListener('mousemove', (e) => {
       if (!this.isResizing) return;
       
-      // Calculate width: distance from right edge of viewport to mouse
-      const newWidth = window.innerWidth - e.clientX;
+      // Calculate width: distance from left edge of container to mouse
+      const containerRect = this.element.getBoundingClientRect();
+      let newWidth = e.clientX - containerRect.left;
       
       // Clamp to min/max
       const clampedWidth = Math.max(
