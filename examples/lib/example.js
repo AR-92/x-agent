@@ -127,7 +127,6 @@ export const sidebar = new Sidebar({
 // Initialize RightPanel component
 export const rightPanel = new RightPanel({
   container: document.getElementById('rightPanelContainer'),
-  mainContent: document.getElementById('mainContent'),
   title: 'Response Details',
   width: 400,
   minWidth: 250,

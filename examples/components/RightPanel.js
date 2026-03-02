@@ -8,7 +8,6 @@
  *   
  *   const rightPanel = new RightPanel({
  *     container: document.getElementById('rightPanelContainer'),
- *     mainContent: document.getElementById('mainContent'),
  *     title: 'Response Details',
  *     width: 400,
  *     minWidth: 250,
@@ -20,22 +19,12 @@
  *     onClose: () => { console.log('Panel closed'); },
  *     onResize: (width) => { console.log('Resized to:', width); },
  *   });
- *   
- *   // Toggle panel
- *   rightPanel.toggle();
- *   
- *   // Open panel
- *   rightPanel.open();
- *   
- *   // Close panel
- *   rightPanel.close();
  */
 
 export class RightPanel {
   constructor(options = {}) {
     this.options = {
       container: null,
-      mainContent: null,
       title: 'Response Details',
       width: 400,
       minWidth: 250,
@@ -53,6 +42,7 @@ export class RightPanel {
     this.isOpen = this.options.isOpen;
     this.currentWidth = this.options.width;
     this.element = null;
+    this.panelContent = null;
     this.resizeHandle = null;
     this.isResizing = false;
     
@@ -67,49 +57,49 @@ export class RightPanel {
 
   render() {
     const container = document.createElement('div');
-    container.className = `relative flex transition-all duration-300 ease-in-out ${this.isOpen ? '' : 'w-0'}`;
+    container.className = 'flex';
     container.style.width = this.isOpen ? `${this.currentWidth}px` : '0';
+    container.style.transition = 'width 0.3s ease-in-out';
+    container.style.overflow = 'hidden';
+    container.style.flexShrink = '0';
     
     container.innerHTML = `
-      <!-- Resize Handle -->
-      <div id="resizeHandle" class="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize z-50 hover:bg-primary/20 transition-colors hidden">
-        <div class="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 -translate-x-3.5 flex items-center justify-center">
-          <div class="w-0.5 h-4 bg-base-content/30 rounded-full"></div>
+      <!-- Panel Content -->
+      <div class="h-screen overflow-hidden bg-base-100 border-s border-base-300 shadow-lg flex flex-col" style="width: ${this.currentWidth}px;">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-4 border-b border-base-300 bg-base-200 shrink-0">
+          <h3 class="text-lg font-bold text-base-content">${this.options.title}</h3>
+          <button id="closePanel" class="btn btn-sm btn-circle btn-ghost rounded-btn hover:bg-base-300">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+          ${this.options.codePreview ? this.renderCodePreview() : ''}
+          ${this.options.projectStructure ? this.renderProjectStructure() : ''}
+          ${this.options.stats ? this.renderStats() : ''}
         </div>
       </div>
       
-      <!-- Panel Content -->
-      <div class="flex-1 min-w-0 h-screen overflow-hidden bg-base-100 border-s border-base-300 shadow-lg">
-        <div class="h-full flex flex-col">
-          <!-- Header -->
-          <div class="flex items-center justify-between p-4 border-b border-base-300 bg-base-200 shrink-0">
-            <h3 class="text-lg font-bold text-base-content">${this.options.title}</h3>
-            <button id="closePanel" class="btn btn-sm btn-circle btn-ghost rounded-btn hover:bg-base-300">
-              <i data-lucide="x" class="w-5 h-5"></i>
-            </button>
-          </div>
-
-          <!-- Content -->
-          <div class="flex-1 overflow-y-auto p-4 space-y-4">
-            ${this.options.codePreview ? this.renderCodePreview() : ''}
-            ${this.options.projectStructure ? this.renderProjectStructure() : ''}
-            ${this.options.stats ? this.renderStats() : ''}
-          </div>
+      <!-- Resize Handle -->
+      <div id="resizeHandle" class="w-1 cursor-col-resize z-50 hover:bg-primary/20 transition-colors flex-shrink-0" style="height: 100%;">
+        <div class="h-full w-full flex items-center justify-center">
+          <div class="w-0.5 h-8 bg-base-content/30 rounded-full"></div>
         </div>
       </div>
     `;
 
     this.options.container.appendChild(container);
     this.element = container;
+    this.panelContent = container.firstElementChild;
     this.resizeHandle = container.querySelector('#resizeHandle');
     
     // Cache DOM elements
     this.closeBtn = container.querySelector('#closePanel');
     
-    // Set initial state
-    if (this.isOpen) {
-      this.resizeHandle.classList.remove('hidden');
-    }
+    // Set initial visibility
+    this.resizeHandle.style.visibility = this.isOpen ? 'visible' : 'hidden';
   }
 
   renderCodePreview() {
@@ -187,12 +177,16 @@ export class RightPanel {
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
       e.preventDefault();
+      e.stopPropagation();
     });
 
     document.addEventListener('mousemove', (e) => {
       if (!this.isResizing) return;
       
-      const newWidth = this.element.parentElement.offsetWidth - e.clientX;
+      // Calculate new width based on distance from right edge of viewport
+      const rect = this.element.getBoundingClientRect();
+      const newWidth = rect.right - e.clientX;
+      
       const clampedWidth = Math.max(
         this.options.minWidth,
         Math.min(this.options.maxWidth, newWidth)
@@ -214,16 +208,14 @@ export class RightPanel {
   open() {
     this.isOpen = true;
     this.element.style.width = `${this.currentWidth}px`;
-    this.element.classList.remove('w-0');
-    this.resizeHandle.classList.remove('hidden');
+    this.resizeHandle.style.visibility = 'visible';
     this.options.onOpen?.();
   }
 
   close() {
     this.isOpen = false;
     this.element.style.width = '0';
-    this.element.classList.add('w-0');
-    this.resizeHandle.classList.add('hidden');
+    this.resizeHandle.style.visibility = 'hidden';
     this.options.onClose?.();
   }
 
@@ -238,6 +230,7 @@ export class RightPanel {
   setWidth(width) {
     this.currentWidth = width;
     this.element.style.width = `${width}px`;
+    this.panelContent.style.width = `${width}px`;
   }
 
   updateCodePreview(codePreview) {
