@@ -38,15 +38,24 @@ export class SettingsModal {
       onTimeFormatChange: null,
       onDateFormatChange: null,
       onTimezoneChange: null,
+      onApiKeyChange: null,
+      onModelChange: null,
+      onSystemPromptChange: null,
+      onThinkingLevelChange: null,
       ...options,
     };
 
     this.isOpen = false;
     this.element = null;
-    
+    this.apiKey = '';
+    this.models = [];
+    this.selectedModel = '';
+    this.systemPrompt = '';
+    this.thinkingLevel = 'medium';
+
     this.render();
     this.attachEvents();
-    
+
     // Initialize Lucide icons
     if (window.lucide) {
       window.lucide.createIcons();
@@ -139,6 +148,61 @@ export class SettingsModal {
           
           <main class="flex-1 overflow-y-auto px-4 pb-3">
             <div class="p-3">
+              <!-- API Configuration Section -->
+              <h3 class="text-base font-medium text-base-content mb-3">API Configuration</h3>
+              <div class="divide-y divide-base-300 mb-4">
+                <!-- API Key -->
+                <div class="form-control flex flex-col justify-start py-2 border-b border-base-300 gap-2">
+                  <div>
+                    <label class="text-xs text-base-content/70 mb-0.5">OpenRouter API Key</label>
+                    <p class="text-xs text-base-content/50">Your OpenRouter API key for accessing models</p>
+                  </div>
+                  <div class="flex gap-2">
+                    <input type="password" id="apiKeyInput" placeholder="sk-or-..." class="input input-bordered input-sm flex-1 rounded-btn" />
+                    <button id="saveApiKeyBtn" class="btn btn-primary btn-sm rounded-btn">Save</button>
+                  </div>
+                  <div id="apiKeyStatus" class="text-xs mt-1"></div>
+                </div>
+
+                <!-- Model Selection -->
+                <div class="form-control flex flex-col justify-start py-2 border-b border-base-300 gap-2">
+                  <div>
+                    <label class="text-xs text-base-content/70 mb-0.5">Model</label>
+                    <p class="text-xs text-base-content/50">Select the AI model to use</p>
+                  </div>
+                  <select id="modelSelect" class="select select-bordered select-sm w-full rounded-btn">
+                    <option value="">Loading models...</option>
+                  </select>
+                </div>
+
+                <!-- Thinking Level -->
+                <div class="form-control flex flex-col justify-start py-2 border-b border-base-300 gap-2">
+                  <div>
+                    <label class="text-xs text-base-content/70 mb-0.5">Thinking Level</label>
+                    <p class="text-xs text-base-content/50">How much the model should think before responding</p>
+                  </div>
+                  <select id="thinkingLevelSelect" class="select select-bordered select-sm w-full rounded-btn">
+                    <option value="off">Off</option>
+                    <option value="minimal">Minimal</option>
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                    <option value="xhigh">Extra High</option>
+                  </select>
+                </div>
+
+                <!-- System Prompt -->
+                <div class="form-control flex flex-col justify-start py-2 border-b border-base-300 gap-2">
+                  <div>
+                    <label class="text-xs text-base-content/70 mb-0.5">System Prompt</label>
+                    <p class="text-xs text-base-content/50">Instructions for how the AI should behave</p>
+                  </div>
+                  <textarea id="systemPromptTextarea" class="textarea textarea-bordered w-full min-h-[80px] text-xs" rows="3"></textarea>
+                  <button id="saveSystemPromptBtn" class="btn btn-primary btn-sm rounded-btn self-end">Save</button>
+                </div>
+              </div>
+
+              <!-- General Settings -->
               <h3 class="text-base font-medium text-base-content mb-3">General</h3>
               <div class="divide-y divide-base-300">
                 <!-- Language -->
@@ -253,6 +317,72 @@ export class SettingsModal {
       }
     });
 
+    // API Key input and save button
+    const apiKeyInput = this.element.querySelector('#apiKeyInput');
+    const saveApiKeyBtn = this.element.querySelector('#saveApiKeyBtn');
+    const apiKeyStatus = this.element.querySelector('#apiKeyStatus');
+
+    // Load saved API key
+    const savedApiKey = localStorage.getItem('openrouter_api_key') || '';
+    if (apiKeyInput) {
+      apiKeyInput.value = savedApiKey;
+      this.apiKey = savedApiKey;
+    }
+
+    saveApiKeyBtn?.addEventListener('click', () => {
+      const key = apiKeyInput.value.trim();
+      if (key) {
+        localStorage.setItem('openrouter_api_key', key);
+        this.apiKey = key;
+        if (apiKeyStatus) {
+          apiKeyStatus.textContent = '✓ API key saved';
+          apiKeyStatus.className = 'text-xs mt-1 text-success';
+        }
+        this.options.onApiKeyChange?.(key);
+        setTimeout(() => {
+          if (apiKeyStatus) apiKeyStatus.textContent = '';
+        }, 3000);
+      }
+    });
+
+    // Model select
+    const modelSelect = this.element.querySelector('#modelSelect');
+    if (modelSelect) {
+      this.loadModels(modelSelect);
+      modelSelect.addEventListener('change', (e) => {
+        this.selectedModel = e.target.value;
+        this.options.onModelChange?.(e.target.value);
+      });
+    }
+
+    // Thinking level select
+    const thinkingLevelSelect = this.element.querySelector('#thinkingLevelSelect');
+    if (thinkingLevelSelect) {
+      thinkingLevelSelect.value = this.thinkingLevel;
+      thinkingLevelSelect.addEventListener('change', (e) => {
+        this.thinkingLevel = e.target.value;
+        this.options.onThinkingLevelChange?.(e.target.value);
+      });
+    }
+
+    // System prompt textarea
+    const systemPromptTextarea = this.element.querySelector('#systemPromptTextarea');
+    const saveSystemPromptBtn = this.element.querySelector('#saveSystemPromptBtn');
+    if (systemPromptTextarea) {
+      systemPromptTextarea.value = this.systemPrompt || 'You are a helpful AI assistant. Be concise but thorough.';
+    }
+    saveSystemPromptBtn?.addEventListener('click', () => {
+      this.systemPrompt = systemPromptTextarea.value.trim();
+      this.options.onSystemPromptChange?.(this.systemPrompt);
+      if (apiKeyStatus) {
+        apiKeyStatus.textContent = '✓ System prompt saved';
+        apiKeyStatus.className = 'text-xs mt-1 text-success';
+        setTimeout(() => {
+          if (apiKeyStatus) apiKeyStatus.textContent = '';
+        }, 3000);
+      }
+    });
+
     // Theme options
     this.themeOptions.forEach(option => {
       option.addEventListener('click', () => {
@@ -287,6 +417,13 @@ export class SettingsModal {
   open() {
     this.isOpen = true;
     this.element.classList.remove('hidden');
+
+    // Populate settings from localStorage
+    const apiKey = localStorage.getItem('openrouter_api_key') || '';
+    const apiKeyInput = this.element.querySelector('#apiKeyInput');
+    if (apiKeyInput) {
+      apiKeyInput.value = apiKey;
+    }
   }
 
   close() {
@@ -304,6 +441,79 @@ export class SettingsModal {
 
   setCurrentTheme(themeName) {
     this.currentThemeSpan.textContent = themeName;
+  }
+
+  async loadModels(modelSelect) {
+    try {
+      const { getModels } = await import('../assets/js/x-agent-openrouter.min.js');
+      const models = await getModels();
+      this.models = models;
+
+      if (models.length > 0) {
+        modelSelect.innerHTML = '';
+
+        // Group by provider
+        const providers = {};
+        for (const model of models) {
+          const provider = model.id.split('/')[0] || 'other';
+          if (!providers[provider]) {
+            providers[provider] = [];
+          }
+          providers[provider].push(model);
+        }
+
+        // Popular models first
+        const popularIds = [
+          'anthropic/claude-sonnet-4',
+          'anthropic/claude-3-5-sonnet',
+          'openai/gpt-4o',
+          'google/gemini-2.5-flash',
+          'meta-llama/llama-3.1-405b-instruct',
+          'mistralai/mistral-small-3.1-24b-instruct:free',
+        ];
+
+        const popularModels = models.filter(m => popularIds.includes(m.id));
+        if (popularModels.length > 0) {
+          const popularGroup = document.createElement('optgroup');
+          popularGroup.label = '⭐ Popular';
+          for (const model of popularModels) {
+            const option = document.createElement('option');
+            option.value = model.id;
+            option.textContent = model.name || model.id;
+            popularGroup.appendChild(option);
+          }
+          modelSelect.appendChild(popularGroup);
+        }
+
+        // Add other providers
+        const sortedProviders = Object.keys(providers).sort();
+        for (const provider of sortedProviders) {
+          const providerModels = providers[provider].filter(m => !popularIds.includes(m.id));
+          if (providerModels.length === 0) continue;
+
+          const providerGroup = document.createElement('optgroup');
+          providerGroup.label = provider.charAt(0).toUpperCase() + provider.slice(1);
+          for (const model of providerModels) {
+            const option = document.createElement('option');
+            option.value = model.id;
+            option.textContent = model.name || model.id.split('/')[1] || model.id;
+            providerGroup.appendChild(option);
+          }
+          modelSelect.appendChild(providerGroup);
+        }
+
+        // Restore selection
+        if (this.selectedModel && models.some(m => m.id === this.selectedModel)) {
+          modelSelect.value = this.selectedModel;
+        } else if (popularModels.length > 0) {
+          this.selectedModel = popularModels[0].id;
+          modelSelect.value = this.selectedModel;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load models:', error);
+      modelSelect.innerHTML = '<option value="">Failed to load models</option>';
+    }
   }
 
   capitalizeFirst(str) {

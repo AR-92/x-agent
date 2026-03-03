@@ -164,7 +164,7 @@ export const rightPanel = new RightPanel({
     console.log('Right panel opened');
   },
   onResize: (width) => {
-    console.log('Resized to:', width);
+    // console.log('Resized to:', width);
   },
 });
 

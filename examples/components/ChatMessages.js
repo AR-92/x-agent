@@ -69,7 +69,7 @@ export class ChatMessages {
         <div data-message-index="${index}" class="response-item">
           <div class="flex items-center gap-3 mb-3">
             ${this.renderLogo()}
-            <span class="font-medium text-base-content">${this.options.assistantName}</span>
+            <span class="font-medium text-base-content">${message.assistantName || this.options.assistantName}</span>
           </div>
           <div class="pl-12 flex flex-col gap-3">
             <p class="text-sm leading-relaxed text-base-content">${message.content}</p>
@@ -78,6 +78,25 @@ export class ChatMessages {
         </div>
       `;
     }
+    
+    if (message.type === 'user') {
+      return `
+        <div data-message-index="${index}" class="response-item">
+          <div class="flex items-center justify-end gap-3 mb-3">
+            <span class="font-medium text-base-content">You</span>
+            <div class="w-8 h-8 rounded-box flex items-center justify-center bg-primary/20">
+              <i data-lucide="user" class="w-5 h-5 text-primary"></i>
+            </div>
+          </div>
+          <div class="pr-12">
+            <div class="bg-primary text-primary-content rounded-box px-4 py-2 max-w-[80%] ml-auto">
+              <p class="text-sm leading-relaxed">${message.content}</p>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
     return '';
   }
 
