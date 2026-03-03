@@ -242,7 +242,7 @@ export class ChatMessages {
 
   renderReasoning(reasoning) {
     const { title = 'Reasoning Process', steps = [] } = reasoning;
-    
+
     return `
       <div class="bg-base-200 rounded-box p-4 text-sm">
         <p class="font-medium mb-2 flex items-center gap-2 text-base-content">
@@ -252,7 +252,7 @@ export class ChatMessages {
         <ul class="space-y-2">
           ${steps.map(step => `
             <li class="flex items-center gap-2 text-base-content">
-              ${step.loading 
+              ${step.loading
                 ? '<span class="loading loading-spinner loading-xs text-primary"></span>'
                 : `<i data-lucide="${step.icon || 'check-circle-2'}" class="w-4 h-4 ${step.variant || 'text-success'}"></i>`
               }

@@ -1,6 +1,7 @@
 /**
  * Main App - Full Agent Integration with OpenRouter
  * Combines the modern UI with full agent functionality
+ * Uses all ChatMessages UI features: badges, code, alerts, terminal, reasoning
  */
 
 import { ChatInput } from '../components/ChatInput.js';
@@ -31,6 +32,14 @@ let currentModelId = 'mistralai/mistral-small-3.1-24b-instruct:free';
 let allModels = [];
 let systemPrompt = 'You are a helpful AI assistant. Be concise but thorough. When asked to perform calculations or use tools, show your work clearly.';
 let thinkingLevel = 'medium';
+
+// Current message being built
+let currentStreamingMessage = null;
+let pendingBadges = [];
+let pendingCodeBlocks = [];
+let pendingAlerts = [];
+let pendingTerminal = null;
+let pendingReasoning = null;
 
 // Tools
 const calculatorTool = {
@@ -172,7 +181,6 @@ const settingsModal = new SettingsModal({
   },
   onApiKeyChange: (apiKey) => {
     log.info('API key updated');
-    // Re-initialize agent with new API key
     resetAgent();
   },
   onModelChange: (modelId) => {
@@ -260,16 +268,18 @@ function handleAgentEvent(event) {
     case 'agent_start':
       log.info('Agent started');
       updateStatus('running');
+      resetStreamingState();
       break;
 
     case 'agent_end':
       log.info('Agent completed');
       updateStatus('idle');
+      finalizeCurrentMessage();
       break;
 
     case 'message_update':
       if (event.assistantMessageEvent) {
-        updateAssistantMessage(event.assistantMessageEvent);
+        processMessageUpdate(event.assistantMessageEvent);
       }
       break;
 
@@ -283,7 +293,7 @@ function handleAgentEvent(event) {
 
     case 'done':
       if (event.message?.usage) {
-        // Could show usage in right panel
+        showUsageInPanel(event.message.usage);
       }
       if (event.message?.content?.length === 0) {
         log.warn('Empty response from model');
@@ -292,13 +302,17 @@ function handleAgentEvent(event) {
       }
       break;
 
+    case 'turn_end':
+      finalizeCurrentMessage();
+      break;
+
     case 'tool_execution_start':
       log.info('Tool execution started:', event.toolName);
-      addToolCallMessage(event.toolName, event.args);
+      addToolCallBadge(event.toolName);
       break;
 
     case 'tool_execution_end':
-      log.info('Tool execution ended:', event.toolName);
+      log.info('Tool execution ended:', event.toolName, 'isError:', event.isError);
       break;
 
     case 'error':
@@ -310,43 +324,155 @@ function handleAgentEvent(event) {
   }
 }
 
-function updateStatus(status) {
-  chatInput.setEnabled(status !== 'running');
-  // Update tasks to show status
-  const currentTasks = chatInput.tasks || [];
-  if (currentTasks.length > 0) {
-    const lastTask = currentTasks[currentTasks.length - 1];
-    if (status === 'running' && lastTask.status !== 'pending') {
-      chatInput.updateTask(currentTasks.length - 1, { status: 'pending' });
-    } else if (status === 'idle' && lastTask.status === 'pending') {
-      chatInput.updateTask(currentTasks.length - 1, { status: 'completed' });
+// Reset streaming state for new message
+function resetStreamingState() {
+  currentStreamingMessage = null;
+  pendingBadges = [];
+  pendingCodeBlocks = [];
+  pendingAlerts = [];
+  pendingTerminal = null;
+  pendingReasoning = null;
+}
+
+// Process streaming message update
+function processMessageUpdate(event) {
+  if (!event.partial?.content) return;
+
+  for (const block of event.partial.content) {
+    if (block.type === 'text') {
+      // Update or create text content
+      if (!currentStreamingMessage) {
+        currentStreamingMessage = {
+          type: 'response',
+          content: block.text,
+          items: [],
+          isStreaming: true,
+        };
+        addOrUpdateStreamingMessage();
+      } else {
+        currentStreamingMessage.content = block.text;
+        addOrUpdateStreamingMessage();
+      }
+    } else if (block.type === 'thinking') {
+      // Add reasoning step
+      pendingReasoning = {
+        type: 'reasoning',
+        title: 'Thinking Process',
+        steps: [
+          { text: block.thinking, loading: true },
+        ],
+      };
+      updateMessageItems();
+    } else if (block.type === 'toolCall') {
+      // Add tool call badge
+      pendingBadges.push({
+        type: 'badge',
+        variant: 'primary',
+        icon: 'loader-2',
+        text: `Calling ${block.name}...`,
+        animated: true,
+      });
+      updateMessageItems();
     }
+  }
+
+  // Update usage stats if available
+  if (event.partial?.usage) {
+    showUsageInPanel(event.partial.usage);
   }
 }
 
-function updateAssistantMessage(event) {
-  // For now, we'll use a simple approach
-  // In a full implementation, you'd parse the streaming JSON and update the ChatMessages component
-  if (event.partial?.content) {
-    const textContent = event.partial.content
-      .filter(block => block.type === 'text')
-      .map(block => block.text)
-      .join('');
+// Add or update the streaming message
+function addOrUpdateStreamingMessage() {
+  if (!currentStreamingMessage) return;
 
-    if (textContent) {
-      // Update or add message
-      const lastMessage = chatMessages.options.messages[chatMessages.options.messages.length - 1];
-      if (lastMessage && lastMessage.type === 'response' && lastMessage.isStreaming) {
-        lastMessage.content = textContent;
-        chatMessages.refresh();
-      }
+  const messages = chatMessages.options.messages;
+  const lastMessage = messages[messages.length - 1];
+
+  if (lastMessage && lastMessage.isStreaming) {
+    // Update existing streaming message
+    lastMessage.content = currentStreamingMessage.content;
+    lastMessage.items = currentStreamingMessage.items;
+    chatMessages.refresh();
+  } else {
+    // Add new streaming message
+    chatMessages.addMessage(currentStreamingMessage);
+  }
+
+  // Scroll to bottom
+  const container = document.getElementById('chatMessagesContainer');
+  if (container) {
+    container.scrollTop = container.scrollHeight;
+  }
+}
+
+// Update message items (badges, code, alerts, etc.)
+function updateMessageItems() {
+  if (!currentStreamingMessage) return;
+
+  const items = [];
+
+  if (pendingBadges.length > 0) {
+    items.push(...pendingBadges);
+  }
+
+  if (pendingCodeBlocks.length > 0) {
+    items.push(...pendingCodeBlocks);
+  }
+
+  if (pendingAlerts.length > 0) {
+    items.push(...pendingAlerts);
+  }
+
+  if (pendingTerminal) {
+    items.push(pendingTerminal);
+  }
+
+  if (pendingReasoning) {
+    items.push(pendingReasoning);
+  }
+
+  currentStreamingMessage.items = items;
+  addOrUpdateStreamingMessage();
+}
+
+// Finalize current message (convert from streaming to complete)
+function finalizeCurrentMessage() {
+  if (currentStreamingMessage) {
+    currentStreamingMessage.isStreaming = false;
+
+    // Convert pending reasoning from loading to complete
+    if (pendingReasoning) {
+      pendingReasoning.steps = pendingReasoning.steps.map(step => ({
+        ...step,
+        loading: false,
+        icon: step.icon || 'check-circle-2',
+      }));
     }
+
+    // Convert tool call badges to completed
+    pendingBadges = pendingBadges.map(badge => {
+      if (badge.animated && badge.text.includes('Calling')) {
+        return {
+          ...badge,
+          variant: 'success',
+          icon: 'check-circle-2',
+          animated: false,
+          text: badge.text.replace('Calling', 'Completed'),
+        };
+      }
+      return badge;
+    });
+
+    updateMessageItems();
+    resetStreamingState();
   }
 }
 
 function finalizeAssistantMessage(message) {
-  const lastMessage = chatMessages.options.messages[chatMessages.options.messages.length - 1];
-  if (lastMessage) {
+  const messages = chatMessages.options.messages;
+  const lastMessage = messages[messages.length - 1];
+  if (lastMessage && lastMessage.isStreaming) {
     lastMessage.isStreaming = false;
   }
 }
@@ -360,29 +486,42 @@ function addToolResultMessage(message) {
     type: 'response',
     content: content,
     assistantName: 'Tool Result',
-  });
-}
-
-function addToolCallMessage(toolName, args) {
-  chatMessages.addMessage({
-    type: 'response',
-    content: `Calling ${toolName}...`,
     items: [
       {
         type: 'badge',
-        variant: 'info',
-        icon: 'loader-2',
-        text: `${toolName} executing`,
-        animated: true,
+        variant: 'success',
+        icon: 'check-circle-2',
+        text: 'Tool execution completed',
       },
     ],
   });
 }
 
+function addToolCallBadge(toolName) {
+  if (!currentStreamingMessage) {
+    currentStreamingMessage = {
+      type: 'response',
+      content: 'Processing your request...',
+      items: [],
+      isStreaming: true,
+    };
+  }
+
+  pendingBadges.push({
+    type: 'badge',
+    variant: 'primary',
+    icon: 'loader-2',
+    text: `${toolName} executing`,
+    animated: true,
+  });
+
+  updateMessageItems();
+}
+
 function addErrorMessage(error) {
   chatMessages.addMessage({
     type: 'response',
-    content: error,
+    content: 'An error occurred while processing your request.',
     items: [
       {
         type: 'alert',
@@ -392,6 +531,21 @@ function addErrorMessage(error) {
       },
     ],
   });
+}
+
+function updateStatus(status) {
+  chatInput.setEnabled(status !== 'running');
+
+  // Update tasks to show status
+  const currentTasks = chatInput.tasks || [];
+  if (currentTasks.length > 0) {
+    const lastTask = currentTasks[currentTasks.length - 1];
+    if (status === 'running' && lastTask.status !== 'pending') {
+      chatInput.updateTask(currentTasks.length - 1, { status: 'pending' });
+    } else if (status === 'idle' && lastTask.status === 'pending') {
+      chatInput.updateTask(currentTasks.length - 1, { status: 'completed' });
+    }
+  }
 }
 
 async function sendMessage(message) {
@@ -406,15 +560,12 @@ async function sendMessage(message) {
     content: message,
   });
 
-  // Add streaming placeholder
-  chatMessages.addMessage({
-    type: 'response',
-    content: '',
-    isStreaming: true,
-  });
+  // Reset streaming state for new message
+  resetStreamingState();
 
   // Add task
-  chatInput.addTask(message.substring(0, 50) + (message.length > 50 ? '...' : ''), 'pending');
+  const taskText = message.substring(0, 50) + (message.length > 50 ? '...' : '');
+  chatInput.addTask(taskText, 'pending');
 
   try {
     abortController = new AbortController();
@@ -434,12 +585,14 @@ function abortRequest() {
     abortController.abort();
     abortController = null;
     updateStatus('idle');
+    finalizeCurrentMessage();
   }
 }
 
 function clearChat() {
   chatMessages.clearMessages();
   chatInput.clearTasks();
+  resetStreamingState();
   if (agent) {
     agent.reset();
   }
@@ -467,6 +620,33 @@ function showApiKeyPrompt() {
     setApiKey(apiKey);
     initAgent();
   }
+}
+
+// Show usage stats in right panel
+function showUsageInPanel(usage) {
+  if (!usage) return;
+
+  const usageHtml = `
+    <div class="p-4 space-y-3">
+      <h4 class="font-medium text-base-content mb-2">Token Usage</h4>
+      <div class="space-y-2 text-sm">
+        <div class="flex justify-between">
+          <span class="text-base-content/60">Input:</span>
+          <span class="text-base-content">${usage.input.toLocaleString()}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-base-content/60">Output:</span>
+          <span class="text-base-content">${usage.output.toLocaleString()}</span>
+        </div>
+        <div class="flex justify-between font-medium">
+          <span class="text-base-content">Total:</span>
+          <span class="text-base-content">${usage.totalTokens.toLocaleString()}</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  rightPanel.element.querySelector('.flex-1')?.insertAdjacentHTML('beforeend', usageHtml);
 }
 
 // Load models
