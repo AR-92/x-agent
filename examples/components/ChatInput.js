@@ -190,13 +190,13 @@ export class ChatInput {
 
   toggleTasksList() {
     this.isTasksVisible = !this.isTasksVisible;
-    
+
     if (this.isTasksVisible) {
       this.tasksList.classList.remove('hidden');
-      this.chevronIcon.style.transform = 'rotate(180deg)';
+      this.chevronIcon.classList.add('rotate-180');
     } else {
       this.tasksList.classList.add('hidden');
-      this.chevronIcon.style.transform = 'rotate(0deg)';
+      this.chevronIcon.classList.remove('rotate-180');
     }
   }
 

@@ -91,11 +91,33 @@ export const chatMessages = new ChatMessages({
   ],
 });
 
+// Initialize SettingsModal component
+export const settingsModal = new SettingsModal({
+  container: document.getElementById('settingsModalContainer'),
+  currentTheme: 'Light',
+  onThemeChange: (theme, themeName) => {
+    document.documentElement.setAttribute('data-theme', theme);
+    console.log('Theme changed:', themeName);
+  },
+  onLanguageChange: (lang) => {
+    console.log('Language changed:', lang);
+  },
+  onTimeFormatChange: (format) => {
+    console.log('Time format changed:', format);
+  },
+  onDateFormatChange: (format) => {
+    console.log('Date format changed:', format);
+  },
+  onTimezoneChange: (timezone) => {
+    console.log('Timezone changed:', timezone);
+  },
+});
+
 // Initialize Sidebar component
 export const sidebar = new Sidebar({
   container: document.getElementById('sidebarContainer'),
   logo: {
-    src: './assets/img/logo.svg',
+    icon: 'hexagon',
     alt: 'X-Agent',
     version: '1.0'
   },
@@ -122,6 +144,9 @@ export const sidebar = new Sidebar({
   onNavigate: (item, index) => {
     console.log('Navigated to:', item.label);
   },
+  onSettings: () => {
+    settingsModal.open();
+  },
 });
 
 // Initialize RightPanel component
@@ -143,9 +168,14 @@ export const rightPanel = new RightPanel({
   },
 });
 
-// Wire up panel toggle button
-document.getElementById('panelToggle').addEventListener('click', () => {
+// Wire up panel toggle button (in navbar)
+document.getElementById('panelToggle')?.addEventListener('click', () => {
   rightPanel.open();
+});
+
+// Mobile menu button (placeholder for future mobile sidebar toggle)
+document.getElementById('menuBtn')?.addEventListener('click', () => {
+  console.log('Menu button clicked');
 });
 
 // Initialize ChatInput component
@@ -170,33 +200,6 @@ export const chatInput = new ChatInput({
   onPlus: () => {
     console.log('Plus clicked');
   },
-});
-
-// Initialize SettingsModal component
-export const settingsModal = new SettingsModal({
-  container: document.getElementById('settingsModalContainer'),
-  currentTheme: 'Light',
-  onThemeChange: (theme, themeName) => {
-    document.documentElement.setAttribute('data-theme', theme);
-    console.log('Theme changed:', themeName);
-  },
-  onLanguageChange: (lang) => {
-    console.log('Language changed:', lang);
-  },
-  onTimeFormatChange: (format) => {
-    console.log('Time format changed:', format);
-  },
-  onDateFormatChange: (format) => {
-    console.log('Date format changed:', format);
-  },
-  onTimezoneChange: (timezone) => {
-    console.log('Timezone changed:', timezone);
-  },
-});
-
-// Wire up settings trigger button
-document.getElementById('settingsTrigger').addEventListener('click', () => {
-  settingsModal.open();
 });
 
 // Export all components for external access

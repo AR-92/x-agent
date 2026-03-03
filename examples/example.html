@@ -19,18 +19,8 @@
 </head>
 <body class="bg-base-100 text-base-content min-h-screen font-sans antialiased">
 
-<!-- Settings Modal Trigger -->
-<button id="settingsTrigger" class="fixed top-4 right-4 z-50 w-10 h-10 rounded-btn bg-base-200 border border-base-300 shadow-md flex items-center justify-center cursor-pointer hover:bg-base-300 transition-all">
-  <i data-lucide="settings" class="w-5 h-5"></i>
-</button>
-
 <!-- Settings Modal Container -->
 <div id="settingsModalContainer"></div>
-
-<!-- Right Side Panel Toggle Button -->
-<button id="panelToggle" class="fixed top-4 right-20 z-40 w-10 h-10 rounded-btn bg-base-200 border border-base-300 shadow-md flex items-center justify-center text-base-content hover:bg-base-300 transition-all cursor-pointer">
-  <i data-lucide="panel-right" class="w-5 h-5"></i>
-</button>
 
 <!-- App Container -->
 <div class="flex h-screen overflow-hidden">
@@ -39,8 +29,23 @@
   
   <!-- Main Content -->
   <div id="mainContent" class="flex-1 flex flex-col overflow-hidden">
+    <!-- Minimal Navbar -->
+    <nav class="flex items-center justify-between px-4 py-2 border-b border-base-300 bg-base-100 shrink-0">
+      <div class="flex items-center gap-2">
+        <button id="menuBtn" class="btn btn-ghost btn-sm btn-circle h-8 w-8 min-h-0 rounded-btn hover:bg-base-300 lg:hidden">
+          <i data-lucide="menu" class="w-4 h-4"></i>
+        </button>
+        <span class="text-sm font-medium text-base-content">New Task</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="panelToggle" class="btn btn-ghost btn-sm btn-circle h-8 w-8 min-h-0 rounded-btn hover:bg-base-300">
+          <i data-lucide="panel-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </nav>
+
     <!-- Chat Messages Container -->
-    <div id="chatMessagesContainer" class="flex-1 overflow-y-auto"></div>
+    <div id="chatMessagesContainer" class="flex-1 overflow-y-auto scrollbar-hide"></div>
     
     <!-- Chat Input Container -->
     <div id="chatInputContainer" class="shrink-0"></div>

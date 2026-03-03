@@ -45,73 +45,52 @@ export class RightPanel {
       transition: width 0.3s ease-in-out;
       overflow: hidden;
     `;
-    
+
     container.innerHTML = `
       <!-- Resize Handle (LEFT edge of panel) -->
-      <div id="resizeHandle" style="
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 4px;
-        cursor: col-resize;
-        z-index: 50;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        visibility: ${this.isOpen ? 'visible' : 'hidden'};
+      <div id="resizeHandle" class="
+        absolute left-0 top-0 bottom-0 w-1 cursor-col-resize z-50
+        flex items-center justify-center
+        ${this.isOpen ? 'visible' : 'invisible'}
+        hover:w-1.5 transition-all duration-150
       ">
-        <div style="
-          width: 1px;
-          height: 48px;
-          background: var(--bc, #666);
-          opacity: 0.5;
-          border-radius: 1px;
-          transition: all 0.2s;
+        <div class="
+          w-px h-full bg-base-content/30 rounded
+          hover:bg-base-content/60 hover:w-0.5
+          transition-all duration-150
         "></div>
       </div>
-      
+
       <!-- Panel Content -->
-      <div style="
-        height: 100%;
-        overflow: hidden;
-        background: var(--b1, #fff);
-        border-left: 1px solid var(--b3, #ddd);
-        box-shadow: -2px 0 8px rgba(0,0,0,0.1);
-        display: flex;
-        flex-direction: column;
+      <div class="
+        h-full overflow-hidden
+        bg-base-100
+        border-l border-base-300
+        shadow-[-2px_0_8px_rgba(0,0,0,0.1)]
+        flex flex-col
       ">
-        <!-- Header -->
-        <div style="
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 16px;
-          border-bottom: 1px solid var(--b3, #ddd);
-          background: var(--b2, #f5f5f5);
-          flex-shrink: 0;
+        <!-- Minimal Navbar -->
+        <div class="
+          flex items-center justify-between
+          px-4 py-2
+          border-b border-base-300
+          bg-base-100
+          flex-shrink-0
+          h-12
         ">
-          <h3 style="font-size: 18px; font-weight: 700; color: var(--bc, #333);">${this.options.title}</h3>
-          <button id="closePanel" style="
-            width: 28px;
-            height: 28px;
-            border-radius: 9999px;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+          <span class="text-sm font-medium text-base-content">${this.options.title}</span>
+          <button id="closePanel" class="
+            btn btn-ghost btn-sm btn-circle
+            h-8 w-8 min-h-0 rounded-full
+            hover:bg-base-300 transition-colors
           ">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 6 6 18M6 6l12 12"/>
-            </svg>
+            <i data-lucide="x" class="w-4 h-4 text-base-content"></i>
           </button>
         </div>
 
         <!-- Content (empty state) -->
-        <div style="flex: 1; overflow-y: auto; padding: 16px; display: flex; align-items: center; justify-content: center;">
-          <p style="color: var(--bc, #666); opacity: 0.5; font-size: 14px;">No content</p>
+        <div class="flex-1 overflow-y-auto p-4 flex items-center justify-center">
+          <p class="text-base-content/50 text-sm">No content</p>
         </div>
       </div>
     `;
@@ -119,8 +98,13 @@ export class RightPanel {
     this.options.container.appendChild(container);
     this.element = container;
     this.resizeHandle = container.querySelector('#resizeHandle');
-    this.panelContent = container.querySelector('div[style*="background: var(--b1)"]');
+    this.panelContent = container.querySelector('.border-l');
     this.closeBtn = container.querySelector('#closePanel');
+
+    // Initialize Lucide icons
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
   }
 
   renderCodePreview() {

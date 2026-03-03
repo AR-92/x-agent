@@ -36,7 +36,7 @@ export class ChatMessages {
     this.options = {
       container: null,
       messages: [],
-      logoSrc: './assets/img/logo.svg',
+      logoIcon: 'hexagon',
       logoAlt: 'Logo',
       assistantName: 'Accelerator',
       onItemAction: null,
@@ -82,16 +82,16 @@ export class ChatMessages {
   }
 
   renderLogo() {
-    if (this.options.logoSrc) {
+    if (this.options.logoIcon) {
       return `
         <div class="logo-container">
           <div class="w-8 h-8 rounded-box flex items-center justify-center bg-base-200">
-            <img src="${this.options.logoSrc}" alt="${this.options.logoAlt}" class="w-6 h-6">
+            <i data-lucide="${this.options.logoIcon}" class="w-6 h-6"></i>
           </div>
         </div>
       `;
     }
-    
+
     return '';
   }
 

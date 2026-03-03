@@ -2,13 +2,13 @@
  * Sidebar Component
  * A modern, theme-aware sidebar with navigation, collapsible sections, and user profile.
  * Inspired by modern dashboard designs.
- * 
+ *
  * Usage:
  *   import { Sidebar } from './components/Sidebar.js';
- *   
+ *
  *   const sidebar = new Sidebar({
  *     container: document.body,
- *     logo: { src: '/logo.svg', alt: 'Logo', version: '1.0' },
+ *     logo: { icon: 'hexagon', alt: 'Logo', version: '1.0' },
  *     navigation: [
  *       { label: 'New Task', icon: 'plus', href: '/', active: true },
  *       { label: 'Explore', icon: 'compass', href: '/explore' },
@@ -22,6 +22,10 @@
  *       credits: 1479,
  *     },
  *     onNavigate: (item) => { console.log('Navigated to:', item); },
+ *     onSwitchAccount: () => { console.log('Switch Account clicked'); },
+ *     onCreateAccount: () => { console.log('Create New Account clicked'); },
+ *     onSettings: () => { console.log('Settings clicked'); },
+ *     onLogout: () => { console.log('Logout clicked'); },
  *   });
  */
 
@@ -34,16 +38,21 @@ export class Sidebar {
       user: null,
       onNavigate: null,
       onCollapse: null,
+      onSwitchAccount: null,
+      onCreateAccount: null,
+      onSettings: null,
+      onLogout: null,
       width: 'w-52 sm:w-56',
       ...options,
     };
 
     this.isCollapsed = false;
+    this.isDropdownOpen = false;
     this.element = null;
-    
+
     this.render();
     this.attachEvents();
-    
+
     // Initialize Lucide icons
     if (window.lucide) {
       window.lucide.createIcons();
@@ -61,9 +70,13 @@ export class Sidebar {
           <div class="relative flex flex-shrink-0 items-center justify-between gap-1 px-2 py-2">
             <div class="flex cursor-pointer items-center">
               ${this.options.logo ? `
-                <img alt="${this.options.logo.alt || 'Logo'}" src="${this.options.logo.src || './assets/img/logo.svg'}" class="h-7 m-4 ms-3">
+                <div class="w-8 h-8 rounded-box flex items-center justify-center bg-base-200 m-4 ms-3">
+                  <i data-lucide="${this.options.logo.icon || 'hexagon'}" class="w-6 h-6"></i>
+                </div>
               ` : `
-                <img alt="Logo" src="./assets/img/logo.svg" class="h-7 m-4 ms-3">
+                <div class="w-8 h-8 rounded-box flex items-center justify-center bg-base-200 m-4 ms-3">
+                  <i data-lucide="hexagon" class="w-6 h-6"></i>
+                </div>
               `}
               ${this.options.logo?.version ? `
                 <span class="text-base-content/40 self-end px-1 py-0.5 text-[10px]">${this.options.logo.version}</span>
@@ -125,7 +138,7 @@ export class Sidebar {
           ${this.options.user ? `
           <footer class="border-t border-base-300 flex-shrink-0">
             <div class="relative">
-              <div class="flex items-center gap-2 px-2 py-2 hover:bg-base-200/60 transition-colors cursor-pointer relative group">
+              <div class="user-profile-trigger flex items-center gap-2 px-2 py-2 hover:bg-base-200/60 transition-colors cursor-pointer relative group">
                 <div class="relative flex items-center justify-center h-7 w-7 rounded-full bg-primary/20 flex-shrink-0">
                   ${this.options.user.avatar ? `
                     <img alt="" class="h-7 w-7 rounded-full object-cover" src="${this.options.user.avatar}">
@@ -152,6 +165,32 @@ export class Sidebar {
                 </div>
                 <i data-lucide="chevron-up" class="lucide-chevron-up w-4 h-4 text-base-content/50 transition-transform duration-200"></i>
               </div>
+              <div class="user-profile-dropdown absolute bottom-full left-0 right-0 mb-1 bg-base-200 rounded-lg shadow-lg border border-base-300 overflow-hidden z-50 max-h-80 overflow-y-auto w-full hidden">
+                <div class="p-1.5 space-y-1">
+                  <button class="switch-account-btn w-full flex items-center justify-between px-2 py-1.5 text-xs text-base-content hover:bg-base-300 rounded-md transition-colors">
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="users" class="lucide-users w-3.5 h-3.5"></i>
+                      <span>Switch Account</span>
+                    </div>
+                    <i data-lucide="chevron-up" class="lucide-chevron-up w-3.5 h-3.5 transition-transform rotate-180"></i>
+                  </button>
+                  <div class="space-y-0.5">
+                    <button class="create-account-btn w-full flex items-center gap-2 px-2 py-1.5 text-xs text-primary hover:bg-primary/10 rounded-md transition-colors">
+                      <i data-lucide="plus" class="lucide-plus w-3.5 h-3.5"></i>
+                      <span>Create New Account</span>
+                    </button>
+                  </div>
+                  <div class="border-t border-base-300 my-1"></div>
+                  <button class="settings-btn w-full flex items-center gap-2 px-2 py-1.5 text-xs text-base-content hover:bg-base-300 rounded-md transition-colors">
+                    <i data-lucide="settings" class="lucide-settings w-3.5 h-3.5"></i>
+                    <span>Settings</span>
+                  </button>
+                  <button class="logout-btn w-full flex items-center gap-2 px-2 py-1.5 text-xs text-error hover:bg-error/10 rounded-md transition-colors">
+                    <i data-lucide="log-out" class="lucide-log-out w-3.5 h-3.5"></i>
+                    <span>Logout</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </footer>
           ` : ''}
@@ -161,12 +200,19 @@ export class Sidebar {
 
     this.options.container.appendChild(container);
     this.element = container;
-    
+
     // Cache DOM elements
     this.collapseBtn = container.querySelector('#collapseSidebar');
     this.sidebar = container.querySelector('aside');
     this.navItems = container.querySelectorAll('.menu a');
     this.taskSearch = container.querySelector('#taskSearch');
+    this.userProfileTrigger = container.querySelector('.user-profile-trigger');
+    this.userProfileDropdown = container.querySelector('.user-profile-dropdown');
+    this.switchAccountBtn = container.querySelector('.switch-account-btn');
+    this.createAccountBtn = container.querySelector('.create-account-btn');
+    this.settingsBtn = container.querySelector('.settings-btn');
+    this.logoutBtn = container.querySelector('.logout-btn');
+    this.chevronIcon = container.querySelector('.user-profile-trigger .lucide-chevron-up');
   }
 
   renderIcon(iconName, isActive) {
@@ -199,11 +245,49 @@ export class Sidebar {
     this.taskSearch?.addEventListener('input', (e) => {
       this.filterTasks(e.target.value);
     });
+
+    // User profile dropdown toggle
+    this.userProfileTrigger?.addEventListener('click', () => {
+      this.toggleDropdown();
+    });
+
+    // Switch Account button
+    this.switchAccountBtn?.addEventListener('click', () => {
+      this.options.onSwitchAccount?.();
+      this.closeDropdown();
+    });
+
+    // Create New Account button
+    this.createAccountBtn?.addEventListener('click', () => {
+      this.options.onCreateAccount?.();
+      this.closeDropdown();
+    });
+
+    // Settings button
+    this.settingsBtn?.addEventListener('click', () => {
+      this.options.onSettings?.();
+      this.closeDropdown();
+    });
+
+    // Logout button
+    this.logoutBtn?.addEventListener('click', () => {
+      this.options.onLogout?.();
+      this.closeDropdown();
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', this.handleOutsideClick);
+  }
+
+  handleOutsideClick = (e) => {
+    if (this.userProfileDropdown && !this.userProfileDropdown.contains(e.target) && !this.userProfileTrigger.contains(e.target)) {
+      this.closeDropdown();
+    }
   }
 
   toggleCollapse() {
     this.isCollapsed = !this.isCollapsed;
-    
+
     if (this.isCollapsed) {
       this.sidebar.classList.remove(this.options.width);
       this.sidebar.classList.add('w-0', 'opacity-0');
@@ -211,8 +295,32 @@ export class Sidebar {
       this.sidebar.classList.remove('w-0', 'opacity-0');
       this.sidebar.classList.add(this.options.width);
     }
-    
+
     this.options.onCollapse?.(this.isCollapsed);
+  }
+
+  toggleDropdown() {
+    this.isDropdownOpen = !this.isDropdownOpen;
+
+    if (this.isDropdownOpen) {
+      this.userProfileDropdown?.classList.remove('hidden');
+      this.chevronIcon?.classList.add('rotate-180');
+    } else {
+      this.userProfileDropdown?.classList.add('hidden');
+      this.chevronIcon?.classList.remove('rotate-180');
+    }
+  }
+
+  closeDropdown() {
+    this.isDropdownOpen = false;
+    this.userProfileDropdown?.classList.add('hidden');
+    this.chevronIcon?.classList.remove('rotate-180');
+  }
+
+  openDropdown() {
+    this.isDropdownOpen = true;
+    this.userProfileDropdown?.classList.remove('hidden');
+    this.chevronIcon?.classList.add('rotate-180');
   }
 
   setActiveItem(index) {
@@ -236,7 +344,11 @@ export class Sidebar {
 
     tasks.forEach(task => {
       const text = task.textContent.toLowerCase();
-      task.style.display = text.includes(term) ? '' : 'none';
+      if (text.includes(term)) {
+        task.classList.remove('hidden');
+      } else {
+        task.classList.add('hidden');
+      }
     });
   }
 
@@ -273,7 +385,7 @@ export class Sidebar {
       footer.outerHTML = `
         <footer class="border-t border-base-300 flex-shrink-0">
           <div class="relative">
-            <div class="flex items-center gap-2 px-2 py-2 hover:bg-base-200/60 transition-colors cursor-pointer relative group">
+            <div class="user-profile-trigger flex items-center gap-2 px-2 py-2 hover:bg-base-200/60 transition-colors cursor-pointer relative group">
               <div class="relative flex items-center justify-center h-7 w-7 rounded-full bg-primary/20 flex-shrink-0">
                 ${this.options.user.avatar ? `
                   <img alt="" class="h-7 w-7 rounded-full object-cover" src="${this.options.user.avatar}">
@@ -300,10 +412,70 @@ export class Sidebar {
               </div>
               <i data-lucide="chevron-up" class="lucide-chevron-up w-4 h-4 text-base-content/50 transition-transform duration-200"></i>
             </div>
+            <div class="user-profile-dropdown absolute bottom-full left-0 right-0 mb-1 bg-base-200 rounded-lg shadow-lg border border-base-300 overflow-hidden z-50 max-h-80 overflow-y-auto w-full ${this.isDropdownOpen ? '' : 'hidden'}">
+              <div class="p-1.5 space-y-1">
+                <button class="switch-account-btn w-full flex items-center justify-between px-2 py-1.5 text-xs text-base-content hover:bg-base-300 rounded-md transition-colors">
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="users" class="lucide-users w-3.5 h-3.5"></i>
+                    <span>Switch Account</span>
+                  </div>
+                  <i data-lucide="chevron-up" class="lucide-chevron-up w-3.5 h-3.5 transition-transform rotate-180"></i>
+                </button>
+                <div class="space-y-0.5">
+                  <button class="create-account-btn w-full flex items-center gap-2 px-2 py-1.5 text-xs text-primary hover:bg-primary/10 rounded-md transition-colors">
+                    <i data-lucide="plus" class="lucide-plus w-3.5 h-3.5"></i>
+                    <span>Create New Account</span>
+                  </button>
+                </div>
+                <div class="border-t border-base-300 my-1"></div>
+                <button class="settings-btn w-full flex items-center gap-2 px-2 py-1.5 text-xs text-base-content hover:bg-base-300 rounded-md transition-colors">
+                  <i data-lucide="settings" class="lucide-settings w-3.5 h-3.5"></i>
+                  <span>Settings</span>
+                </button>
+                <button class="logout-btn w-full flex items-center gap-2 px-2 py-1.5 text-xs text-error hover:bg-error/10 rounded-md transition-colors">
+                  <i data-lucide="log-out" class="lucide-log-out w-3.5 h-3.5"></i>
+                  <span>Logout</span>
+                </button>
+              </div>
+            </div>
           </div>
         </footer>
       `;
-      
+
+      // Re-cache DOM elements
+      this.userProfileTrigger = this.element.querySelector('.user-profile-trigger');
+      this.userProfileDropdown = this.element.querySelector('.user-profile-dropdown');
+      this.switchAccountBtn = this.element.querySelector('.switch-account-btn');
+      this.createAccountBtn = this.element.querySelector('.create-account-btn');
+      this.settingsBtn = this.element.querySelector('.settings-btn');
+      this.logoutBtn = this.element.querySelector('.logout-btn');
+      this.chevronIcon = this.element.querySelector('.user-profile-trigger .lucide-chevron-up');
+
+      // Re-attach events
+      this.userProfileTrigger?.addEventListener('click', () => {
+        this.toggleDropdown();
+      });
+
+      this.switchAccountBtn?.addEventListener('click', () => {
+        this.options.onSwitchAccount?.();
+        this.closeDropdown();
+      });
+
+      this.createAccountBtn?.addEventListener('click', () => {
+        this.options.onCreateAccount?.();
+        this.closeDropdown();
+      });
+
+      this.settingsBtn?.addEventListener('click', () => {
+        this.options.onSettings?.();
+        this.closeDropdown();
+      });
+
+      this.logoutBtn?.addEventListener('click', () => {
+        this.options.onLogout?.();
+        this.closeDropdown();
+      });
+
       if (window.lucide) {
         window.lucide.createIcons();
       }
@@ -311,6 +483,7 @@ export class Sidebar {
   }
 
   destroy() {
+    document.removeEventListener('click', this.handleOutsideClick);
     this.element?.remove();
   }
 }
