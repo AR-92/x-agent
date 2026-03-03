@@ -338,64 +338,55 @@ function resetStreamingState() {
 function processMessageUpdate(event) {
   if (!event.partial?.content) return;
 
-  for (const block of event.partial.content) {
-    if (block.type === 'text') {
-      // Update or create text content
-      if (!currentStreamingMessage) {
-        currentStreamingMessage = {
-          type: 'response',
-          content: block.text,
-          items: [],
-          isStreaming: true,
-        };
-        addOrUpdateStreamingMessage();
-      } else {
-        currentStreamingMessage.content = block.text;
-        addOrUpdateStreamingMessage();
-      }
-    } else if (block.type === 'thinking') {
-      // Add reasoning step
-      pendingReasoning = {
-        type: 'reasoning',
-        title: 'Thinking Process',
-        steps: [
-          { text: block.thinking, loading: true },
-        ],
-      };
-      updateMessageItems();
-    } else if (block.type === 'toolCall') {
-      // Add tool call badge
-      pendingBadges.push({
-        type: 'badge',
-        variant: 'primary',
-        icon: 'loader-2',
-        text: `Calling ${block.name}...`,
-        animated: true,
-      });
-      updateMessageItems();
-    }
-  }
-
-  // Update usage stats if available
-  if (event.partial?.usage) {
-    showUsageInPanel(event.partial.usage);
-  }
-}
-
-// Add or update the streaming message
-function addOrUpdateStreamingMessage() {
-  if (!currentStreamingMessage) return;
+  // Get the latest text content
+  const textBlock = event.partial.content.find(block => block.type === 'text');
+  if (!textBlock) return;
 
   const messages = chatMessages.options.messages;
   const lastMessage = messages[messages.length - 1];
 
+  // Check if we have a streaming message placeholder
   if (lastMessage && lastMessage.isStreaming) {
     // Update existing streaming message
-    lastMessage.content = currentStreamingMessage.content;
-    lastMessage.items = currentStreamingMessage.items;
+    lastMessage.content = textBlock.text;
+    
+    // Process other block types
+    for (const block of event.partial.content) {
+      if (block.type === 'thinking') {
+        pendingReasoning = {
+          type: 'reasoning',
+          title: 'Thinking Process',
+          steps: [{ text: block.thinking, loading: true }],
+        };
+      } else if (block.type === 'toolCall') {
+        pendingBadges.push({
+          type: 'badge',
+          variant: 'primary',
+          icon: 'loader-2',
+          text: `Calling ${block.name}...`,
+          animated: true,
+        });
+      }
+    }
+
+    // Update items
+    const items = [];
+    if (pendingBadges.length > 0) items.push(...pendingBadges);
+    if (pendingCodeBlocks.length > 0) items.push(...pendingCodeBlocks);
+    if (pendingAlerts.length > 0) items.push(...pendingAlerts);
+    if (pendingTerminal) items.push(pendingTerminal);
+    if (pendingReasoning) items.push(pendingReasoning);
+    
+    lastMessage.items = items;
     chatMessages.refresh();
   } else {
-    // Add new streaming message
+    // Create new streaming message
+    currentStreamingMessage = {
+      type: 'response',
+      content: textBlock.text,
+      items: [],
+      isStreaming: true,
+    };
     chatMessages.addMessage(currentStreamingMessage);
   }
 
@@ -404,42 +395,19 @@ function addOrUpdateStreamingMessage() {
   if (container) {
     container.scrollTop = container.scrollHeight;
   }
+
+  // Update usage stats if available
+  if (event.partial?.usage) {
+    showUsageInPanel(event.partial.usage);
+  }
 }
 
-// Update message items (badges, code, alerts, etc.)
-function updateMessageItems() {
-  if (!currentStreamingMessage) return;
-
-  const items = [];
-
-  if (pendingBadges.length > 0) {
-    items.push(...pendingBadges);
-  }
-
-  if (pendingCodeBlocks.length > 0) {
-    items.push(...pendingCodeBlocks);
-  }
-
-  if (pendingAlerts.length > 0) {
-    items.push(...pendingAlerts);
-  }
-
-  if (pendingTerminal) {
-    items.push(pendingTerminal);
-  }
-
-  if (pendingReasoning) {
-    items.push(pendingReasoning);
-  }
-
-  currentStreamingMessage.items = items;
-  addOrUpdateStreamingMessage();
-}
-
-// Finalize current message (convert from streaming to complete)
 function finalizeCurrentMessage() {
-  if (currentStreamingMessage) {
-    currentStreamingMessage.isStreaming = false;
+  const messages = chatMessages.options.messages;
+  const lastMessage = messages[messages.length - 1];
+
+  if (lastMessage && lastMessage.isStreaming) {
+    lastMessage.isStreaming = false;
 
     // Convert pending reasoning from loading to complete
     if (pendingReasoning) {
@@ -448,25 +416,32 @@ function finalizeCurrentMessage() {
         loading: false,
         icon: step.icon || 'check-circle-2',
       }));
+      lastMessage.items = lastMessage.items.map(item => {
+        if (item.type === 'reasoning') {
+          return pendingReasoning;
+        }
+        return item;
+      });
     }
 
     // Convert tool call badges to completed
-    pendingBadges = pendingBadges.map(badge => {
-      if (badge.animated && badge.text.includes('Calling')) {
+    lastMessage.items = lastMessage.items.map(item => {
+      if (item.type === 'badge' && item.animated && item.text.includes('Calling')) {
         return {
-          ...badge,
+          ...item,
           variant: 'success',
           icon: 'check-circle-2',
           animated: false,
-          text: badge.text.replace('Calling', 'Completed'),
+          text: item.text.replace('Calling', 'Completed'),
         };
       }
-      return badge;
+      return item;
     });
 
-    updateMessageItems();
-    resetStreamingState();
+    chatMessages.refresh();
   }
+
+  resetStreamingState();
 }
 
 function finalizeAssistantMessage(message) {
@@ -474,6 +449,7 @@ function finalizeAssistantMessage(message) {
   const lastMessage = messages[messages.length - 1];
   if (lastMessage && lastMessage.isStreaming) {
     lastMessage.isStreaming = false;
+    chatMessages.refresh();
   }
 }
 
@@ -560,8 +536,13 @@ async function sendMessage(message) {
     content: message,
   });
 
-  // Reset streaming state for new message
+  // Reset streaming state and create placeholder
   resetStreamingState();
+  chatMessages.addMessage({
+    type: 'response',
+    content: '...',
+    isStreaming: true,
+  });
 
   // Add task
   const taskText = message.substring(0, 50) + (message.length > 50 ? '...' : '');
