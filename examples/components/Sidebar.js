@@ -42,7 +42,7 @@ export class Sidebar {
       onCreateAccount: null,
       onSettings: null,
       onLogout: null,
-      width: 'w-52 sm:w-56',
+      width: 'w-44 sm:w-48',
       ...options,
     };
 
@@ -67,62 +67,62 @@ export class Sidebar {
       <aside class="sidebar bg-base-100 border-base-300 z-[55] flex h-screen flex-col overflow-hidden border-e shadow-md transition-all duration-300 ease-in-out ${this.options.width}" dir="ltr">
         <div class="flex h-full min-h-0 flex-col transition-all duration-300">
           <!-- Header with Logo -->
-          <div class="relative flex flex-shrink-0 items-center justify-between gap-1 px-2 py-2">
+          <div class="relative flex flex-shrink-0 items-center justify-between gap-1 px-1.5 py-1.5">
             <div class="flex cursor-pointer items-center">
               ${this.options.logo ? `
-                <div class="w-8 h-8 rounded-box flex items-center justify-center bg-base-200 m-4 ms-3">
-                  <i data-lucide="${this.options.logo.icon || 'hexagon'}" class="w-6 h-6"></i>
+                <div class="w-6 h-6 rounded-box flex items-center justify-center bg-base-200">
+                  <i data-lucide="${this.options.logo.icon || 'hexagon'}" class="w-4 h-4"></i>
                 </div>
               ` : `
-                <div class="w-8 h-8 rounded-box flex items-center justify-center bg-base-200 m-4 ms-3">
-                  <i data-lucide="hexagon" class="w-6 h-6"></i>
+                <div class="w-6 h-6 rounded-box flex items-center justify-center bg-base-200">
+                  <i data-lucide="hexagon" class="w-4 h-4"></i>
                 </div>
               `}
               ${this.options.logo?.version ? `
-                <span class="text-base-content/40 self-end px-1 py-0.5 text-[10px]">${this.options.logo.version}</span>
+                <span class="text-base-content/40 self-end px-0.5 py-0 text-[9px]">${this.options.logo.version}</span>
               ` : ''}
             </div>
-            <button id="collapseSidebar" class="hover:bg-base-200 flex cursor-pointer rounded-lg p-1 transition-colors">
-              <i data-lucide="chevron-left" class="lucide-chevron-left w-4 h-4 text-base-content/60"></i>
+            <button id="collapseSidebar" class="hover:bg-base-200 flex cursor-pointer rounded p-0.5 transition-colors">
+              <i data-lucide="chevron-left" class="lucide-chevron-left w-3 h-3 text-base-content/60"></i>
             </button>
           </div>
 
           <!-- Navigation Menu -->
           <div class="scrollbar-thin scrollbar-thumb-base-300 scrollbar-track-transparent min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-            <ul class="menu w-full mb-5 gap-2 px-1">
+            <ul class="menu w-full mb-2 gap-0.5 px-0.5">
               ${this.options.navigation.map((item, index) => `
                 <li>
                   <a href="${item.href || '#'}" 
-                     class="group flex items-center rounded-lg px-2 py-2 transition-colors justify-start ${item.active ? 'active bg-primary/10 text-primary' : 'hover:bg-base-200 text-base-content inactive'}"
+                     class="group flex items-center rounded px-1.5 py-1.5 transition-colors justify-start ${item.active ? 'active bg-primary/10 text-primary' : 'hover:bg-base-200 text-base-content inactive'}"
                      data-index="${index}">
                     ${this.renderIcon(item.icon || 'circle', item.active)}
-                    <span class="text-sm ms-2">${item.label}</span>
+                    <span class="text-xs ms-1.5">${item.label}</span>
                   </a>
                 </li>
               `).join('')}
             </ul>
 
             ${this.options.tasksSection ? `
-            <div class="w-full px-1">
-              <ul class="w-full gap-1">
+            <div class="w-full px-0.5">
+              <ul class="w-full gap-0.5">
                 <li>
                   <details open="">
-                    <summary class="text-base-content/50 flex cursor-pointer items-center rounded-lg px-2 py-1.5 text-sm transition-colors ltr:justify-between rtl:justify-between leading-normal">
-                      <div class="flex w-full items-center gap-1.5">
+                    <summary class="text-base-content/50 flex cursor-pointer items-center rounded px-1 text-xs transition-colors ltr:justify-between rtl:justify-between leading-normal">
+                      <div class="flex w-full items-center gap-1">
                         <span>All Tasks</span>
-                        <span class="badge badge-xs badge-primary flex-shrink-0 border-none ltr:ms-auto rtl:me-auto">${this.options.tasksSection.taskCount || 0}</span>
+                        <span class="badge badge-[9px] badge-primary flex-shrink-0 border-none ltr:ms-auto rtl:me-auto">${this.options.tasksSection.taskCount || 0}</span>
                       </div>
                     </summary>
-                    <div class="py-1 pe-2 ps-2">
+                    <div class="py-0.5 pe-1 ps-1">
                       <div class="relative">
-                        <input type="text" id="taskSearch" class="input input-bordered input-xs w-full pe-6 text-sm h-6" placeholder="Search tasks">
-                        <i data-lucide="search" class="lucide-search text-base-content/40 absolute end-1.5 top-1/2 h-3 w-3 -translate-y-1/2"></i>
+                        <input type="text" id="taskSearch" class="input input-bordered input-xs w-full pe-5 text-xs h-5" placeholder="Search">
+                        <i data-lucide="search" class="lucide-search text-base-content/40 absolute end-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2"></i>
                       </div>
                     </div>
-                    <div class="mt-0.5 space-y-0.5 overflow-y-auto pt-2" id="tasksList">
+                    <div class="mt-0 space-y-0 overflow-y-auto" id="tasksList">
                       ${this.options.tasksSection.tasks ? this.options.tasksSection.tasks.map(task => `
-                        <div class="relative group flex items-center gap-1.5 rounded-md px-2 py-2 text-sm transition-colors cursor-pointer text-base-content/80 hover:bg-base-200 hover:text-base-content">
-                          <i data-lucide="folder" class="lucide-folder h-3 w-3 text-warning shrink-0"></i>
+                        <div class="relative group flex items-center gap-1 rounded px-1 py-1 text-xs transition-colors cursor-pointer text-base-content/80 hover:bg-base-200 hover:text-base-content">
+                          <i data-lucide="folder" class="lucide-folder h-2.5 w-2.5 text-warning shrink-0"></i>
                           <span class="truncate flex-1">${task.name}</span>
                         </div>
                       `).join('') : ''}
@@ -138,55 +138,55 @@ export class Sidebar {
           ${this.options.user ? `
           <footer class="border-t border-base-300 flex-shrink-0">
             <div class="relative">
-              <div class="user-profile-trigger flex items-center gap-2 px-2 py-2 hover:bg-base-200/60 transition-colors cursor-pointer relative group">
-                <div class="relative flex items-center justify-center h-7 w-7 rounded-full bg-primary/20 flex-shrink-0">
+              <div class="user-profile-trigger flex items-center gap-1 px-1 py-1 hover:bg-base-200/60 transition-colors cursor-pointer relative group">
+                <div class="relative flex items-center justify-center h-5 w-5 rounded-full bg-primary/20 flex-shrink-0">
                   ${this.options.user.avatar ? `
-                    <img alt="" class="h-7 w-7 rounded-full object-cover" src="${this.options.user.avatar}">
+                    <img alt="" class="h-5 w-5 rounded-full object-cover" src="${this.options.user.avatar}">
                   ` : `
-                    <span class="text-xs font-medium text-primary">${this.getInitials(this.options.user.name)}</span>
+                    <span class="text-[9px] font-medium text-primary">${this.getInitials(this.options.user.name)}</span>
                   `}
                   ${this.options.user.online !== false ? `
-                    <span class="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-success border border-base-100"></span>
+                    <span class="absolute bottom-0 right-0 h-1 w-1 rounded-full bg-success border border-base-100"></span>
                   ` : ''}
                 </div>
                 <div class="flex-1 min-w-0">
-                  <div class="text-xs text-base-content truncate">${this.options.user.name}</div>
-                  <div class="flex items-center gap-1.5 text-xs text-base-content/60 mt-0.5">
+                  <div class="text-[9px] text-base-content truncate">${this.options.user.name}</div>
+                  <div class="flex items-center gap-0.5 text-[9px] text-base-content/60 mt-0">
                     ${this.options.user.plan ? `
-                      <span class="badge badge-primary badge-xs">${this.options.user.plan}</span>
+                      <span class="badge badge-primary badge-[8px]">${this.options.user.plan}</span>
                     ` : ''}
                     ${this.options.user.credits ? `
                       <span class="flex items-center gap-0.5">
-                        <i data-lucide="zap" class="lucide-zap w-2.5 h-2.5"></i>
+                        <i data-lucide="zap" class="lucide-zap w-1.5 h-1.5"></i>
                         ${this.formatNumber(this.options.user.credits)}
                       </span>
                     ` : ''}
                   </div>
                 </div>
-                <i data-lucide="chevron-up" class="lucide-chevron-up w-4 h-4 text-base-content/50 transition-transform duration-200"></i>
+                <i data-lucide="chevron-up" class="lucide-chevron-up w-2.5 h-2.5 text-base-content/50 transition-transform duration-200"></i>
               </div>
-              <div class="user-profile-dropdown absolute bottom-full left-0 right-0 mb-1 bg-base-200 rounded-lg shadow-lg border border-base-300 overflow-hidden z-50 max-h-80 overflow-y-auto w-full hidden">
-                <div class="p-1.5 space-y-1">
-                  <button class="switch-account-btn w-full flex items-center justify-between px-2 py-1.5 text-xs text-base-content hover:bg-base-300 rounded-md transition-colors">
-                    <div class="flex items-center gap-2">
-                      <i data-lucide="users" class="lucide-users w-3.5 h-3.5"></i>
+              <div class="user-profile-dropdown absolute bottom-full left-0 right-0 mb-0.5 bg-base-200 rounded-lg shadow-lg border border-base-300 overflow-hidden z-50 max-h-60 overflow-y-auto w-full hidden">
+                <div class="p-1 space-y-0.5">
+                  <button class="switch-account-btn w-full flex items-center justify-between px-1.5 py-1 text-[10px] text-base-content hover:bg-base-300 rounded transition-colors">
+                    <div class="flex items-center gap-1.5">
+                      <i data-lucide="users" class="lucide-users w-3 h-3"></i>
                       <span>Switch Account</span>
                     </div>
-                    <i data-lucide="chevron-up" class="lucide-chevron-up w-3.5 h-3.5 transition-transform rotate-180"></i>
+                    <i data-lucide="chevron-up" class="lucide-chevron-up w-3 h-3 transition-transform rotate-180"></i>
                   </button>
                   <div class="space-y-0.5">
-                    <button class="create-account-btn w-full flex items-center gap-2 px-2 py-1.5 text-xs text-primary hover:bg-primary/10 rounded-md transition-colors">
-                      <i data-lucide="plus" class="lucide-plus w-3.5 h-3.5"></i>
-                      <span>Create New Account</span>
+                    <button class="create-account-btn w-full flex items-center gap-1.5 px-1.5 py-1 text-[10px] text-primary hover:bg-primary/10 rounded transition-colors">
+                      <i data-lucide="plus" class="lucide-plus w-3 h-3"></i>
+                      <span>New Account</span>
                     </button>
                   </div>
-                  <div class="border-t border-base-300 my-1"></div>
-                  <button class="settings-btn w-full flex items-center gap-2 px-2 py-1.5 text-xs text-base-content hover:bg-base-300 rounded-md transition-colors">
-                    <i data-lucide="settings" class="lucide-settings w-3.5 h-3.5"></i>
+                  <div class="border-t border-base-300 my-0.5"></div>
+                  <button class="settings-btn w-full flex items-center gap-1.5 px-1.5 py-1 text-[10px] text-base-content hover:bg-base-300 rounded transition-colors">
+                    <i data-lucide="settings" class="lucide-settings w-3 h-3"></i>
                     <span>Settings</span>
                   </button>
-                  <button class="logout-btn w-full flex items-center gap-2 px-2 py-1.5 text-xs text-error hover:bg-error/10 rounded-md transition-colors">
-                    <i data-lucide="log-out" class="lucide-log-out w-3.5 h-3.5"></i>
+                  <button class="logout-btn w-full flex items-center gap-1.5 px-1.5 py-1 text-[10px] text-error hover:bg-error/10 rounded transition-colors">
+                    <i data-lucide="log-out" class="lucide-log-out w-3 h-3"></i>
                     <span>Logout</span>
                   </button>
                 </div>

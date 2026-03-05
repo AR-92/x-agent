@@ -37,7 +37,62 @@
             <label class="label">
               <span class="label-text font-semibold">System Prompt</span>
             </label>
-            <textarea id="systemPrompt" placeholder="You are a helpful assistant..." class="textarea textarea-bordered w-full min-h-[80px]">You are a helpful AI assistant. Be concise but thorough. When asked to perform calculations or use tools, show your work clearly.</textarea>
+            <textarea id="systemPrompt" placeholder="You are a helpful assistant..." class="textarea textarea-bordered w-full min-h-[120px]">You are a highly capable, helpful, and professional AI assistant. Your goal is to assist users effectively while maintaining clear, transparent communication.
+
+## Communication Style
+
+### 1. Acknowledge & Confirm
+- Start by acknowledging the user's request
+- Confirm your understanding of what they want
+- Briefly outline your approach before taking action
+
+### 2. Show Your Work
+- Explain what you're doing as you do it
+- Break complex tasks into clear steps
+- Mention files you're creating or modifying
+- Share decisions and reasoning for important choices
+
+### 3. Structured Updates
+- Use clear formatting (bold, lists, sections)
+- Organize information logically
+- Highlight important details
+- Keep updates concise but informative
+
+### 4. Summarize Completion
+- Provide a clear summary when tasks are complete
+- List what was created/accomplished
+- Highlight key features or decisions
+- Mention any next steps or recommendations
+
+### 5. Offer Follow-ups
+- Suggest related next steps
+- Ask if the user needs anything else
+- Provide options for extending the work
+
+## Formatting Guidelines
+
+- Use **bold** for important terms, file names, and features
+- Use bullet lists for multiple items
+- Use numbered lists for sequential steps
+- Use sections with clear headings for complex responses
+- Keep paragraphs short and scannable
+- Use code formatting for technical terms, paths, and commands
+
+## Tone
+
+- **Professional** but friendly
+- **Confident** but not arrogant
+- **Clear** and concise
+- **Helpful** and proactive
+- **Transparent** about what you're doing
+
+## Example Response Structure
+
+1. **Acknowledgment**: "Understood! I'll help you with [task]."
+2. **Plan**: "Here's what I'll do: [brief outline]"
+3. **Execution**: [Perform the task with updates]
+4. **Summary**: "✓ Complete! Here's what I created: [list]"
+5. **Follow-up**: "Would you like me to [suggestion]?"</textarea>
           </div>
           <div class="form-control mb-4">
             <label class="label">
@@ -121,6 +176,7 @@
       EventStream,
       parseStreamingJson,
     } from './assets/js/x-agent-openrouter.min.js';
+    import { ChatMessages } from './components/ChatMessages.js';
     
     // Enable DEBUG logging for development
     setLogLevel(LogLevel.DEBUG);
@@ -264,6 +320,18 @@
         case 'message_update':
           if (event.assistantMessageEvent) {
             updateAssistantMessage(event.assistantMessageEvent);
+            
+            // Check for tool calls in the partial message
+            const partial = event.assistantMessageEvent.partial;
+            if (partial?.content) {
+              const toolCalls = partial.content.filter(c => c.type === 'toolCall');
+              if (toolCalls.length > 0 && !currentTaskId) {
+                // First tool call detected - create task
+                const toolName = toolCalls[0].name;
+                const args = toolCalls[0].arguments;
+                showToolExecution(toolName, args);
+              }
+            }
           }
           break;
 
@@ -305,7 +373,7 @@
 
         case 'tool_execution_end':
           log.info('Tool execution ended:', event.toolName, 'isError:', event.isError);
-          hideToolExecution();
+          hideToolExecution(event.isError);
           break;
 
         case 'error':
@@ -444,7 +512,41 @@
       if (placeholder) {
         placeholder.id = '';
       }
+      
+      // Also update ChatMessages if tasks were collected
+      const cm = getChatMessages();
+      const messages = cm.options.messages;
+      if (messages.length > 0) {
+        const lastMsg = messages[messages.length - 1];
+        // The last message should already have the tasks from showToolExecution
+        cm.refresh();
+      }
     }
+
+    // Update last message with tasks
+    function updateLastMessageWithTasks(content, tasks) {
+      const cm = getChatMessages();
+      const messages = cm.options.messages;
+      
+      if (messages.length === 0) {
+        cm.addMessage({
+          type: 'response',
+          content: content || 'Processing...',
+          tasks: tasks || [],
+        });
+      } else {
+        // Update last message
+        const lastIndex = messages.length - 1;
+        messages[lastIndex].content = content || messages[lastIndex].content;
+        if (tasks) {
+          messages[lastIndex].tasks = tasks;
+        }
+        cm.refresh();
+      }
+    }
+
+    // Tool result message helper
+    let currentTaskId = null;
 
     // Add tool result message
     function addToolResultMessage(message) {
@@ -460,14 +562,83 @@
       addMessage('error', error);
     }
 
-    // Show tool execution
-    function showToolExecution(toolName, args) {
-      // Tool execution is shown in the assistant message via toolCall blocks
+    // Get or create ChatMessages instance
+    let chatMessages = null;
+    function getChatMessages() {
+      if (!chatMessages) {
+        chatMessages = new ChatMessages({
+          container: document.getElementById('chatMessages'),
+          messages: [],
+          logoIcon: 'hexagon',
+          assistantName: 'Accelerator',
+        });
+      }
+      return chatMessages;
     }
 
-    // Hide tool execution indicator
-    function hideToolExecution() {
-      // No-op, tool calls remain visible
+    // Show tool execution as Manus-style task card
+    function showToolExecution(toolName, args) {
+      const cm = getChatMessages();
+      const taskId = `tool_${Date.now()}`;
+      currentTaskId = taskId;
+      
+      // Create a new task card
+      const task = {
+        id: taskId,
+        title: `Executing: ${toolName}`,
+        status: 'in_progress',
+        icon: 'loader-2',
+        description: `Running ${toolName} tool...`,
+        expanded: true,
+        steps: [
+          {
+            text: `Calling ${toolName} with ${JSON.stringify(args || {}).substring(0, 100)}`,
+            status: 'in_progress',
+            icon: 'loader-2',
+            timestamp: new Date().toLocaleTimeString(),
+          }
+        ],
+        timestamp: new Date().toLocaleDateString(),
+      };
+      
+      // Add the task to the last message or create a new response
+      const messages = document.querySelectorAll('[data-message-index]');
+      if (messages.length > 0) {
+        cm.upsertTask(task);
+      } else {
+        // Create new message with task
+        cm.addMessage({
+          type: 'response',
+          content: 'Executing tools...',
+          tasks: [task],
+        });
+      }
+    }
+
+    // Hide tool execution and update task card
+    function hideToolExecution(isError = false) {
+      if (!currentTaskId) return;
+      
+      const cm = getChatMessages();
+      cm.updateTask(currentTaskId, {
+        status: isError ? 'error' : 'completed',
+        expanded: false,
+      });
+      
+      // Update the step
+      const messages = document.querySelectorAll('[data-message-index]');
+      if (messages.length > 0) {
+        const taskIndex = cm.options.messages.findIndex(m => m.tasks?.some(t => t.id === currentTaskId));
+        if (taskIndex !== -1) {
+          const task = cm.options.messages[taskIndex].tasks?.find(t => t.id === currentTaskId);
+          if (task?.steps?.length > 0) {
+            task.steps[task.steps.length - 1].status = isError ? 'error' : 'completed';
+            cm.refresh();
+          }
+        }
+      }
+      
+      currentTaskId = null;
     }
 
     // Escape HTML

@@ -8,7 +8,7 @@ export class RightPanel {
     this.options = {
       container: null,
       title: 'Response Details',
-      width: 400,
+      width: 320,
       minWidth: 250,
       maxWidth: 800,
       isOpen: true,
@@ -72,25 +72,25 @@ export class RightPanel {
         <!-- Minimal Navbar -->
         <div class="
           flex items-center justify-between
-          px-4 py-2
+          px-2 py-1
           border-b border-base-300
           bg-base-100
           flex-shrink-0
-          h-12
+          h-8
         ">
-          <span class="text-sm font-medium text-base-content">${this.options.title}</span>
+          <span class="text-xs font-medium text-base-content">${this.options.title}</span>
           <button id="closePanel" class="
-            btn btn-ghost btn-sm btn-circle
-            h-8 w-8 min-h-0 rounded-full
+            btn btn-ghost btn-xs btn-circle
+            h-6 w-6 min-h-0 rounded-full
             hover:bg-base-300 transition-colors
           ">
-            <i data-lucide="x" class="w-4 h-4 text-base-content"></i>
+            <i data-lucide="x" class="w-3 h-3 text-base-content"></i>
           </button>
         </div>
 
         <!-- Content (empty state) -->
-        <div class="flex-1 overflow-y-auto p-4 flex items-center justify-center">
-          <p class="text-base-content/50 text-sm">No content</p>
+        <div class="flex-1 overflow-y-auto p-2 flex items-center justify-center">
+          <p class="text-base-content/50 text-xs">No content</p>
         </div>
       </div>
     `;
