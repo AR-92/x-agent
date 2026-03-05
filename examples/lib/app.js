@@ -637,7 +637,7 @@ function processMessageUpdate(event) {
 
   const textBlock = event.partial.content.find(block => block.type === 'text');
   const content = textBlock?.text || '';
-  
+
   // Update narration (main text content)
   if (content) {
     currentNarration = content;
@@ -646,61 +646,75 @@ function processMessageUpdate(event) {
   const messages = chatMessages.options.messages;
   const lastMessage = messages[messages.length - 1];
 
-  // Parse content into structured sections
-  const structured = parseStructuredContent(content);
+  // ONLY process structured content if we have actual thinking/reasoning blocks
+  // Don't parse regular message content as planning steps
+  let hasActualReasoning = false;
   
-  // Update phase based on content
-  if (structured.planning.length > 0 && !currentPhase) {
-    currentPhase = 'planning';
-  }
-  
-  // Build reasoning from structured content
-  if (structured.planning.length > 0) {
-    pendingReasoning = {
-      type: 'reasoning',
-      title: '📋 Planning',
-      steps: structured.planning.map((text, i) => ({
-        text: text,
-        loading: i === structured.planning.length - 1 && currentPhase === 'planning',
-        icon: i < structured.planning.length - 1 ? 'check-circle-2' : 'circle',
-      })),
-    };
-  }
-  
-  if (structured.action.length > 0) {
-    currentPhase = 'action';
-    // Add action steps
-    for (const text of structured.action) {
-      if (!actionSteps.find(a => a.text === text)) {
-        actionSteps.push({
-          type: 'badge',
-          variant: 'primary',
-          icon: 'loader-2',
-          text: text,
-          animated: true,
-        });
-      }
+  // Check if there's actual thinking content from the model
+  for (const block of event.partial.content) {
+    if (block.type === 'thinking' && block.thinking?.trim().length > 0) {
+      hasActualReasoning = true;
+      break;
     }
   }
-  
-  if (structured.result.length > 0) {
-    currentPhase = 'result';
-    // Add result as completed
-    for (const text of structured.result) {
-      if (text.length > 100 || text.includes('```')) {
-        // Likely code output
-        completedResults.push({
-          type: 'code',
-          language: 'text',
-          code: text,
-        });
-      } else {
-        completedResults.push({
-          type: 'badge',
-          variant: 'success',
-          icon: 'check-circle-2',
+
+  // Only build reasoning section if model sent actual thinking blocks
+  if (hasActualReasoning) {
+    const structured = parseStructuredContent(content);
+
+    // Update phase based on content
+    if (structured.planning.length > 0 && !currentPhase) {
+      currentPhase = 'planning';
+    }
+
+    // Build reasoning from structured content
+    if (structured.planning.length > 0) {
+      pendingReasoning = {
+        type: 'reasoning',
+        title: '📋 Planning',
+        steps: structured.planning.map((text, i) => ({
           text: text,
-        });
+          loading: i === structured.planning.length - 1 && currentPhase === 'planning',
+          icon: i < structured.planning.length - 1 ? 'check-circle-2' : 'circle',
+        })),
+      };
+    }
+
+    if (structured.action.length > 0) {
+      currentPhase = 'action';
+      // Add action steps
+      for (const text of structured.action) {
+        if (!actionSteps.find(a => a.text === text)) {
+          actionSteps.push({
+            type: 'badge',
+            variant: 'primary',
+            icon: 'loader-2',
+            text: text,
+            animated: true,
+          });
+        }
+      }
+    }
+
+    if (structured.result.length > 0) {
+      currentPhase = 'result';
+      // Add result as completed
+      for (const text of structured.result) {
+        if (text.length > 100 || text.includes('```')) {
+          // Likely code output
+          completedResults.push({
+            type: 'code',
+            language: 'text',
+            code: text,
+          });
+        } else {
+          completedResults.push({
+            type: 'badge',
+            variant: 'success',
+            icon: 'check-circle-2',
+            text: text,
+          });
+        }
       }
     }
   }
@@ -709,11 +723,13 @@ function processMessageUpdate(event) {
   for (const block of event.partial.content) {
     if (block.type === 'thinking') {
       // Action: Reasoning - shows thinking process
-      pendingReasoning = {
-        type: 'reasoning',
-        title: 'Reasoning Process',
-        steps: [{ text: block.thinking, loading: true, icon: 'brain' }],
-      };
+      if (block.thinking?.trim().length > 0) {
+        pendingReasoning = {
+          type: 'reasoning',
+          title: 'Reasoning Process',
+          steps: [{ text: block.thinking, loading: true, icon: 'brain' }],
+        };
+      }
     } else if (block.type === 'toolCall') {
       // Action: Tool being called
       const existingAction = actionSteps.find(a => a.text.includes(block.name));
@@ -729,7 +745,7 @@ function processMessageUpdate(event) {
     } else if (block.type === 'toolResult') {
       // Result: Tool execution completed
       const toolResultText = block.content?.[0]?.text || '';
-      
+
       // Move from action to result
       actionSteps = actionSteps.filter(a => !a.text.includes('Calling'));
       completedResults.push({
@@ -738,7 +754,7 @@ function processMessageUpdate(event) {
         icon: 'check-circle-2',
         text: `${block.name} completed`,
       });
-      
+
       if (toolResultText.includes('\n') || toolResultText.length > 100) {
         completedResults.push({
           type: 'code',
