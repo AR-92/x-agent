@@ -3,10 +3,10 @@
  * A theme-aware component for displaying AI conversation responses.
  * Supports various content types: text, badges, code blocks, alerts, terminal, reasoning.
  * Enhanced with Manus agent-style task cards and progress tracking.
- * 
+ *
  * Usage:
  *   import { ChatMessages } from './components/ChatMessages.js';
- *   
+ *
  *   const chatMessages = new ChatMessages({
  *     container: document.getElementById('messagesContainer'),
  *     messages: [
@@ -34,10 +34,10 @@
  *       },
  *     ],
  *   });
- *   
+ *
  *   // Add new message
  *   chatMessages.addMessage({ type: 'response', content: 'New message...' });
- *   
+ *
  *   // Update task progress in real-time
  *   chatMessages.updateTask('task2', { status: 'completed', steps: [...] });
  */
@@ -55,19 +55,19 @@ export class ChatMessages {
     };
 
     this.element = null;
-    
+
     this.render();
   }
 
   render() {
     const container = document.createElement('div');
-    container.className = 'max-w-[820px] mx-auto px-3 py-3 space-y-4 ';
-    
+    container.className = 'max-w-[820px] mx-auto px-3 py-3 space-y-4';
+
     container.innerHTML = this.options.messages.map((message, index) => this.renderMessage(message, index)).join('');
-    
+
     this.options.container.appendChild(container);
     this.element = container;
-    
+
     // Initialize Lucide icons
     if (window.lucide) {
       window.lucide.createIcons();
@@ -77,27 +77,65 @@ export class ChatMessages {
   renderMessage(message, index) {
     if (message.type === 'response') {
       const renderedContent = this.renderMarkdown(message.content);
+      const timestamp = message.timestamp ? new Date(message.timestamp).toLocaleString() : new Date().toLocaleString();
+      
       return `
-        <div data-message-index="${index}" class="response-item">
-          <div class="flex items-center gap-2 mb-2">
-            ${this.renderLogo()}
-            <span class="text-xs font-medium text-base-content">${message.assistantName || this.options.assistantName}</span>
+        <div data-message-index="${index}" class="flex flex-col gap-2 w-full group mt-3">
+          <div class="flex items-center justify-between h-[26px] group">
+            <div class="flex items-center gap-[3px] -ms-[2px]">
+              ${this.renderLogo()}
+              <svg height="10" width="59" fill="none" viewBox="0 0 59 10" xmlns="http://www.w3.org/2000/svg">
+                <path d="M52.481 9.37181H51.9695V6.36881H52.6625C52.8495 7.16081 53.119 7.73831 53.471 8.10131C53.823 8.46431 54.2795 8.64581 54.8405 8.64581C55.2475 8.64581 55.561 8.56331 55.781 8.39831C56.012 8.22231 56.1275 7.98581 56.1275 7.68881C56.1275 7.38081 55.99 7.08381 55.715 6.79781C55.44 6.50081 54.9945 6.18731 54.3785 5.85731C53.5425 5.40631 52.943 4.96081 52.58 4.52081C52.217 4.06981 52.0355 3.56381 52.0355 3.00281C52.0355 2.63981 52.1015 2.30431 52.2335 1.99631C52.3765 1.67731 52.5635 1.40231 52.7945 1.17131C53.0365 0.940313 53.3225 0.764313 53.6525 0.643312C53.9825 0.511313 54.34 0.445312 54.725 0.445312C55.066 0.445312 55.4015 0.494812 55.7315 0.593812C56.0725 0.692812 56.3695 0.830313 56.6225 1.00631L56.9195 0.610313H57.3485V3.10181H56.705C56.452 2.47481 56.188 2.02381 55.913 1.74881C55.649 1.47381 55.3245 1.33631 54.9395 1.33631C54.6315 1.33631 54.384 1.41881 54.197 1.58381C54.021 1.74881 53.933 1.96881 53.933 2.24381C53.933 2.55181 54.065 2.84331 54.329 3.11831C54.604 3.39331 55.055 3.69581 55.682 4.02581C56.122 4.26781 56.5015 4.50431 56.8205 4.73531C57.1395 4.96631 57.398 5.20281 57.596 5.44481C57.794 5.67581 57.937 5.92331 58.025 6.18731C58.124 6.44031 58.1735 6.71531 58.1735 7.01231C58.1735 7.39731 58.102 7.74381 57.959 8.05181C57.816 8.35981 57.6125 8.62381 57.3485 8.84381C57.0845 9.06381 56.7655 9.23431 56.3915 9.35531C56.0285 9.47631 55.6215 9.53681 55.1705 9.53681C54.6975 9.53681 54.2575 9.47631 53.8505 9.35531C53.4435 9.22331 53.108 9.03631 52.844 8.79431L52.481 9.37181Z" fill="currentColor" class="text-base-content"></path>
+              </svg>
+              <span class="text-[var(--text-tertiary)] text-xs flex h-5 py-0.5 px-1.5 items-center gap-1 rounded-[6px] border border-[var(--border-dark)] flex-shrink-0 ml-[3px]">Lite</span>
+            </div>
+            <div class="flex items-center gap-[2px] invisible group-hover:visible">
+              <div class="float-right transition text-[12px] text-[var(--text-tertiary)] invisible group-hover:visible">${timestamp}</div>
+            </div>
           </div>
-          <div class="ps-10 flex flex-col gap-2">
-            <div class="text-xs leading-relaxed text-base-content markdown-content">${renderedContent}</div>
+          <div class="flex"><div class="w-[24px] relative"></div><div class="flex flex-col gap-2 flex-1 min-w-0 overflow-hidden pt-2">
+            <div dir="auto" class="max-w-none p-0 m-0 text-[16px] leading-[1.5] text-[var(--text-primary)] markdown-content group [&gt;*:first-child]:mt-0 [&gt;*:last-child]:mb-0">${renderedContent}</div>
             ${message.items ? this.renderItems(message.items) : ''}
             ${message.tasks ? this.renderTasks(message.tasks) : ''}
+          </div></div>
+        </div>
+      `;
+    }
+
+    if (message.type === 'user') {
+      const timestamp = message.timestamp ? new Date(message.timestamp).toLocaleString() : new Date().toLocaleString();
+      
+      return `
+        <div data-message-index="${index}" class="flex w-full flex-col items-end justify-end group mt-3">
+          <div class="flex flex-col items-end max-w-[90%]">
+            <div class="mb-[8px]">
+              <div class="flex gap-[4px] items-center">
+                <span class="text-[var(--text-secondary)] text-sm leading-[22px] truncate"></span>
+              </div>
+            </div>
+            <div class="flex relative flex-col gap-2 items-end max-w-full">
+              <div class="relative rounded-[12px] overflow-hidden bg-[var(--fill-white)] dark:bg-[var(--fill-tsp-white-main)] p-3 ltr:rounded-br-none rtl:rounded-bl-none border border-[var(--border-main)] dark:border-0">
+                <div class="transition-all duration-300">
+                  <span class="text-[var(--text-primary)] u-break-words whitespace-pre-wrap text-xs leading-relaxed">${this.escapeHtml(message.content)}</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center justify-end gap-[2px] overflow-hidden invisible group-hover:visible">
+              <div class="flex h-7 w-7 items-center justify-center cursor-pointer rounded-md hover:bg-[var(--fill-tsp-white-light)]">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy size-5 w-4 h-4 text-[var(--icon-secondary)]" aria-hidden="true">
+                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect>
+                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
+                </svg>
+              </div>
+              <div class="float-right transition text-[12px] text-[var(--text-tertiary)] whitespace-nowrap">${timestamp}</div>
+            </div>
           </div>
         </div>
       `;
     }
-    
-    if (message.type === 'user') {
-      return `
-        <div data-message-index="${index}" class="response-item">
-          <div class="flex items-center justify-end gap-2 mb-2">
-            <span class="text-xs font-medium text-base-content">You</span>
-            <div class="w-6 h-6 rounded-box flex items-center justify-center bg-primary/20">
+
+    return '';
+  }
               <i data-lucide="user" class="w-3.5 h-3.5 text-primary"></i>
             </div>
           </div>
