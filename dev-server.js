@@ -44,6 +44,27 @@ serve({
 		const url = new URL(req.url);
 		let path = url.pathname;
 		
+		// Serve example.html
+		if (path === '/example' || path === '/example.html') {
+			let html = readFileSync(join(ROOT, 'examples', 'example.html'), 'utf-8');
+			
+			// Inject API key into the page
+			if (OPENROUTER_API_KEY) {
+				const injectScript = `
+  <script>
+    // Dev server injected API key
+    window.OPENROUTER_API_KEY = '${OPENROUTER_API_KEY}';
+  </script>`;
+				
+				// Inject before the closing head tag
+				html = html.replace('</head>', injectScript + '\n</head>');
+			}
+			
+			return new Response(html, {
+				headers: { 'Content-Type': 'text/html' }
+			});
+		}
+		
 		// Serve index.html and inject API key
 		if (path === '/' || path === '/index.html') {
 			let html = readFileSync(join(ROOT, 'examples', 'index.html'), 'utf-8');

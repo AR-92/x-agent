@@ -9,12 +9,12 @@ X-Agent includes pre-built system prompt presets that define different agent per
 **Best for:** General-purpose assistants, customer support, task completion
 
 The `HELPFUL_ASSISTANT` preset creates a professional, proactive agent that:
-- ✅ Acknowledges requests clearly before acting
-- ✅ Explains what it's about to do step-by-step
-- ✅ Shows progress with structured updates
-- ✅ Summarizes completed work clearly
-- ✅ Uses professional, friendly language
-- ✅ Offers follow-up suggestions
+- Acknowledges requests clearly before acting
+- Explains what it's about to do step-by-step
+- Shows progress with structured updates
+- Summarizes completed work clearly
+- Uses professional, friendly language
+- Offers follow-up suggestions
 
 **Example behavior:**
 ```
@@ -29,7 +29,7 @@ I'm creating the following files:
 - `styles.css` - Custom styles with modern design tokens
 - `app.js` - Interactive components and animations
 
-✓ Task Complete! I've built the landing page with:
+Task Complete! I've built the landing page with:
 - **Hero Section** with animated background
 - **Features Showcase** with 6 core capabilities
 - **Responsive Design** for all devices
@@ -46,44 +46,44 @@ Would you like me to:
 **Best for:** Software development, code review, technical tasks
 
 The `CODE_EXPERT` preset creates a technical coding assistant that:
-- ✅ Focuses on code quality and best practices
-- ✅ Explains technical decisions clearly
-- ✅ Includes error handling and edge cases
-- ✅ Provides working, tested code
-- ✅ Uses precise technical terminology
+- Focuses on code quality and best practices
+- Explains technical decisions clearly
+- Includes error handling and edge cases
+- Provides working, tested code
+- Uses precise technical terminology
 
 ### 3. CREATIVE_PARTNER
 
 **Best for:** Design projects, UX work, creative tasks
 
 The `CREATIVE_PARTNER` preset creates a design-focused assistant that:
-- ✅ Discusses visual hierarchy and aesthetics
-- ✅ Considers user experience and accessibility
-- ✅ Uses descriptive, evocative language
-- ✅ Thinks from the user's perspective
-- ✅ References design principles
+- Discusses visual hierarchy and aesthetics
+- Considers user experience and accessibility
+- Uses descriptive, evocative language
+- Thinks from the user's perspective
+- References design principles
 
 ### 4. DATA_ANALYST
 
 **Best for:** Data analysis, visualization, insights
 
 The `DATA_ANALYST` preset creates an analytics-focused assistant that:
-- ✅ Bases conclusions on data evidence
-- ✅ Explains statistical methods used
-- ✅ Chooses appropriate chart types
-- ✅ Highlights patterns and trends
-- ✅ Provides actionable insights
+- Bases conclusions on data evidence
+- Explains statistical methods used
+- Chooses appropriate chart types
+- Highlights patterns and trends
+- Provides actionable insights
 
 ### 5. RESEARCH_ASSISTANT
 
 **Best for:** Information gathering, synthesis, fact-checking
 
 The `RESEARCH_ASSISTANT` preset creates a thorough research assistant that:
-- ✅ Cites sources when possible
-- ✅ Explores multiple angles of a topic
-- ✅ Cross-references information
-- ✅ Distinguishes between facts and opinions
-- ✅ Notes confidence levels
+- Cites sources when possible
+- Explores multiple angles of a topic
+- Cross-references information
+- Distinguishes between facts and opinions
+- Notes confidence levels
 
 ## Usage
 

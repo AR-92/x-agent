@@ -2,6 +2,13 @@
  * Main App - Full Agent Integration with OpenRouter
  * Combines the modern UI with full agent functionality
  * Uses all ChatMessages UI features: badges, code, alerts, terminal, reasoning
+ *
+ * x-agent style agent UI features:
+ * - Streaming thinking process (expandable reasoning)
+ * - Task cards with execution steps
+ * - Progress timeline at bottom
+ * - Workspace file browser
+ * - Live event indicators
  */
 
 import { ChatInput } from '../components/ChatInput.js';
@@ -30,7 +37,28 @@ let agent = null;
 let abortController = null;
 let currentModelId = 'mistralai/mistral-small-3.1-24b-instruct:free';
 let allModels = [];
-let systemPrompt = `You are a highly capable, helpful, and professional AI assistant. Your goal is to assist users effectively while maintaining clear, transparent communication.
+let systemPrompt = `You are a highly capable, helpful, and professional AI assistant with access to powerful tools. Your goal is to assist users effectively by ALWAYS using available tools when they can help accomplish a task.
+
+## CRITICAL: Tool Usage Policy
+
+### 1. Tools First Approach
+- **ALWAYS use tools** when they are available and relevant to the task
+- Do NOT ask for permission before using tools
+- Do NOT explain that you're going to use a tool - just use it
+- If a tool can help with ANY part of the task, use it immediately
+- Only respond with text when NO tool is applicable
+
+### 2. When No Tool is Available
+- If NO tool exists for the requested task, apologize clearly
+- Explain that you don't have the capability to perform that specific action
+- Suggest what you CAN do instead with available tools
+- Example: "I apologize, but I don't have a tool available to [requested action]. However, I can help you with [alternative actions using available tools]."
+
+### 3. Tool Execution Transparency
+- Show what you're doing as you do it (stream thinking)
+- Break complex tasks into clear steps
+- Mention files you're creating or modifying
+- Share decisions and reasoning for important choices
 
 ## Communication Style
 
@@ -64,7 +92,7 @@ let systemPrompt = `You are a highly capable, helpful, and professional AI assis
 - Highlight key features or decisions
 - Mention any next steps or recommendations
 
-**Example:** "✓ Task Complete! I've built the landing page with:
+**Example:** "Task Complete! I've built the landing page with:
 - **Hero Section** with animated background
 - **Features Showcase** with 6 core capabilities
 - **Responsive Design** for all devices
@@ -96,18 +124,20 @@ let systemPrompt = `You are a highly capable, helpful, and professional AI assis
 - **Clear** and concise
 - **Helpful** and proactive
 - **Transparent** about what you're doing
+- **Tool-focused** - always look for ways to use tools
 
 ## Example Response Structure
 
 1. **Acknowledgment**: "Understood! I'll help you with [task]."
 2. **Plan**: "Here's what I'll do: [brief outline]"
-3. **Execution**: [Perform the task with updates]
-4. **Summary**: "✓ Complete! Here's what I created: [list]"
+3. **Execution**: [Use tools immediately - don't wait]
+4. **Summary**: "Task Complete! Here's what I created: [list]"
 5. **Follow-up**: "Would you like me to [suggestion]?"
 
 ## Remember
 
-- Always be helpful and solution-oriented
+- ALWAYS use tools when available - this is your primary way of helping
+- If no tool exists for a task, apologize and explain the limitation
 - Communicate clearly and proactively
 - Show your work and explain your decisions
 - Make it easy for users to understand and extend your work
@@ -122,12 +152,193 @@ let pendingAlerts = [];
 let pendingTerminal = null;
 let pendingReasoning = null;
 
-// Narration → Action → Result → Next Step flow
+// Narration → Action → Result flow
 let currentNarration = '';
 let actionSteps = [];
 let completedResults = [];
-let nextSteps = [];
-let currentPhase = 'planning'; // planning, action, result
+let currentPhase = 'planning';
+
+// Track current tool execution for right panel
+let currentToolExecution = null;
+let currentUsage = null;
+
+// Session-wide task state (persists across entire conversation)
+let sessionTasks = [];           // All tasks for the session
+let currentSessionTaskId = null; // Current active task ID
+
+// Task management tool for agent
+const taskManagerTool = {
+  name: 'task_manager',
+  label: 'Task Manager',
+  description: 'Manage tasks for the current session. Add, update, claim, and complete tasks.',
+  parameters: {
+    type: 'object',
+    properties: {
+      action: {
+        type: 'string',
+        enum: ['add', 'update', 'claim', 'complete', 'list'],
+        description: 'Action to perform: add new task, update existing, claim as active, complete, or list all',
+      },
+      taskId: {
+        type: 'string',
+        description: 'Task ID for update/claim/complete actions',
+      },
+      text: {
+        type: 'string',
+        description: 'Task description for add action',
+      },
+      status: {
+        type: 'string',
+        enum: ['pending', 'active', 'completed', 'failed'],
+        description: 'New status for update action',
+      },
+    },
+    required: ['action'],
+  },
+  execute: async (toolCallId, params, signal, onUpdate) => {
+    const { action, taskId, text, status } = params;
+    
+    onUpdate?.({
+      content: [{ type: 'text', text: `Task Manager: ${action}...` }],
+      details: { action, taskId, text, status },
+    });
+
+    try {
+      let result;
+      
+      switch (action) {
+        case 'add':
+          if (!text) throw new Error('text is required for add action');
+          const newTask = {
+            id: 'task_' + Date.now(),
+            text,
+            status: 'pending',
+            timestamp: new Date().toISOString(),
+          };
+          sessionTasks.push(newTask);
+          result = { success: true, task: newTask, message: `Added task: ${text}` };
+          break;
+          
+        case 'update':
+          if (!taskId) throw new Error('taskId is required for update action');
+          const taskIndex = sessionTasks.findIndex(t => t.id === taskId);
+          if (taskIndex === -1) throw new Error(`Task ${taskId} not found`);
+          if (status) sessionTasks[taskIndex].status = status;
+          result = { success: true, task: sessionTasks[taskIndex], message: `Updated task ${taskId}` };
+          break;
+          
+        case 'claim':
+          if (!taskId) throw new Error('taskId is required for claim action');
+          // Mark all other tasks as pending, this one as active
+          sessionTasks.forEach(t => {
+            t.status = t.id === taskId ? 'active' : (t.status === 'active' ? 'pending' : t.status);
+          });
+          currentSessionTaskId = taskId;
+          result = { success: true, task: sessionTasks.find(t => t.id === taskId), message: `Claimed task ${taskId}` };
+          break;
+          
+        case 'complete':
+          if (!taskId) throw new Error('taskId is required for complete action');
+          const completeIndex = sessionTasks.findIndex(t => t.id === taskId);
+          if (completeIndex === -1) throw new Error(`Task ${taskId} not found`);
+          sessionTasks[completeIndex].status = 'completed';
+          if (currentSessionTaskId === taskId) currentSessionTaskId = null;
+          result = { success: true, task: sessionTasks[completeIndex], message: `Completed task ${taskId}` };
+          break;
+          
+        case 'list':
+          result = { success: true, tasks: sessionTasks, message: `Found ${sessionTasks.length} tasks` };
+          break;
+          
+        default:
+          throw new Error(`Unknown action: ${action}`);
+      }
+      
+      // Update UI
+      updateSessionTasks();
+      
+      return {
+        content: [{ type: 'text', text: result.message }],
+        details: result,
+      };
+    } catch (error) {
+      throw new Error(`Task Manager error: ${error.message}`);
+    }
+  },
+};
+
+// Update session tasks in UI
+function updateSessionTasks() {
+  // Update ChatInput with session tasks
+  const completedCount = sessionTasks.filter(t => t.status === 'completed').length;
+  const activeTask = sessionTasks.find(t => t.status === 'active');
+  
+  // Map session tasks to ChatInput format
+  const chatInputTasks = sessionTasks.map(t => ({
+    text: t.text,
+    status: t.status === 'active' ? 'active' : t.status === 'completed' ? 'completed' : t.status === 'failed' ? 'failed' : 'pending',
+  }));
+  
+  chatInput.setTasks(chatInputTasks);
+}
+
+// Add a task to session
+function addSessionTask(text, status = 'pending') {
+  const task = {
+    id: 'task_' + Date.now(),
+    text,
+    status,
+    timestamp: new Date().toISOString(),
+  };
+  sessionTasks.push(task);
+  updateSessionTasks();
+  return task.id;
+}
+
+// Update a session task
+function updateSessionTask(taskId, updates) {
+  const task = sessionTasks.find(t => t.id === taskId);
+  if (task) {
+    Object.assign(task, updates);
+    updateSessionTasks();
+  }
+}
+
+// Claim a session task (mark as active)
+function claimSessionTask(taskId) {
+  sessionTasks.forEach(t => {
+    t.status = t.id === taskId ? 'active' : (t.status === 'active' ? 'pending' : t.status);
+  });
+  currentSessionTaskId = taskId;
+  updateSessionTasks();
+}
+
+// Complete a session task
+function completeSessionTask(taskId) {
+  const task = sessionTasks.find(t => t.id === taskId);
+  if (task) {
+    task.status = 'completed';
+    if (currentSessionTaskId === taskId) currentSessionTaskId = null;
+    updateSessionTasks();
+  }
+}
+
+// Fail a session task
+function failSessionTask(taskId, error = null) {
+  const task = sessionTasks.find(t => t.id === taskId);
+  if (task) {
+    task.status = 'failed';
+    if (error) task.error = error;
+    updateSessionTasks();
+  }
+}
+
+// Clear all session tasks
+function clearSessionTasks() {
+  sessionTasks = [];
+  currentSessionTaskId = null;
+  updateSessionTasks();
+}
 
 // Tools
 const calculatorTool = {
@@ -189,9 +400,33 @@ function evaluateMath(expression) {
 // Initialize Components
 const chatMessages = new ChatMessages({
   container: document.getElementById('chatMessagesContainer'),
-  assistantName: 'Accelerator',
+  assistantName: 'x-agent',
+  logoIcon: 'hexagon',
   messages: [],
+  onMessageClick: (message, index) => {
+    log.info('Message clicked:', index);
+    rightPanel.showMessage(message);
+  },
+  onTaskClick: (task, message, messageIndex) => {
+    log.info('Task clicked:', task);
+    log.info('Message:', message);
+    log.info('Message index:', messageIndex);
+    // Show the full message content in the right panel when task is clicked
+    if (message) {
+      rightPanel.showMessage(message);
+    } else {
+      log.warn('No message found for task click');
+    }
+  },
 });
+
+// Expose chatMessages instance on window for task click handler
+window.chatMessagesInstance = chatMessages;
+
+// Global function to close side panel
+window.closeSidePanel = function() {
+  rightPanel.close();
+};
 
 const sidebar = new Sidebar({
   container: document.getElementById('sidebarContainer'),
@@ -228,7 +463,7 @@ const rightPanel = new RightPanel({
   container: document.getElementById('rightPanelContainer'),
   title: 'Response Details',
   width: 400,
-  minWidth: 250,
+  minWidth: 280,
   maxWidth: 800,
   isOpen: false,
   onClose: () => {
@@ -238,6 +473,9 @@ const rightPanel = new RightPanel({
     log.info('Right panel opened');
   },
   onResize: (width) => {
+  },
+  onItemClick: (item) => {
+    log.info('Item clicked in panel:', item);
   },
 });
 
@@ -336,7 +574,7 @@ function initAgent() {
       systemPrompt: systemPrompt,
       model: getModel(currentModelId),
       thinkingLevel: thinkingLevel,
-      tools: [calculatorTool, currentTimeTool],
+      tools: [calculatorTool, currentTimeTool, taskManagerTool],
     },
     streamFn: async (model, context, options) => {
       log.info('OpenRouter stream called with model:', currentModelId);
@@ -346,7 +584,7 @@ function initAgent() {
         apiKey: apiKey,
         modelId: currentModelId,
         siteUrl: window.location.origin,
-        siteName: 'Manus Lite',
+        siteName: 'X-Agent Lite',
       }, context);
     },
   });
@@ -370,18 +608,6 @@ function handleAgentEvent(event) {
       log.info('Agent completed');
       updateStatus('idle');
       finalizeCurrentMessage();
-      // Complete any remaining pending tasks
-      if (chatInput.hasPendingTasks()) {
-        const progress = chatInput.getProgress();
-        if (progress.completed < progress.total) {
-          // Mark remaining as completed
-          chatInput.tasks.forEach((task, index) => {
-            if (task.status === 'pending' || task.status === 'active') {
-              chatInput.completeTask(index);
-            }
-          });
-        }
-      }
       break;
 
     case 'message_update':
@@ -399,6 +625,7 @@ function handleAgentEvent(event) {
             type: 'response',
             content: '',
             items: [],
+            tasks: [],
             isStreaming: true,
           });
         }
@@ -413,113 +640,54 @@ function handleAgentEvent(event) {
       }
       break;
 
-    case 'content_block_start':
-      if (event.contentBlock?.type === 'tool_use') {
-        // Model is calling a tool - add to action steps
-        addToolCallBadge(event.contentBlock.name || event.contentBlock.id);
-      } else if (event.contentBlock?.type === 'code') {
-        // Code block starting - add to results
-        completedResults.push({
-          type: 'code',
-          language: event.contentBlock.language || 'text',
-          code: '',
-        });
-      }
-      break;
-
-    case 'content_block_delta':
-      if (event.delta?.type === 'tool_use') {
-        const text = event.delta.content?.[0]?.text || '';
-        if (text) {
-          const messages = chatMessages.options.messages;
-          const lastMessage = messages[messages.length - 1];
-          if (lastMessage?.isStreaming) {
-            // Update the action step badge with input
-            const actionStep = actionSteps.find(a => a.text.includes('Calling'));
-            if (actionStep) {
-              actionStep.text = `Calling with: ${text.substring(0, 50)}...`;
-            }
-            chatMessages.refresh();
-          }
-        }
-      } else if (event.delta?.type === 'tool_result') {
-        // Tool result content from model - add to results
-        const resultText = event.delta.content?.[0]?.text || '';
-        if (resultText) {
-          if (resultText.includes('\n') || resultText.length > 80) {
-            completedResults.push({
-              type: 'code',
-              language: 'text',
-              code: resultText,
-            });
-          }
-          updateMessageItems();
-        }
-      } else if (event.delta?.type === 'code_block_delta') {
-        const text = event.delta.content?.[0]?.text || '';
-        if (text && completedResults.length > 0) {
-          const lastResult = completedResults[completedResults.length - 1];
-          if (lastResult.type === 'code') {
-            lastResult.code = (lastResult.code || '') + text;
-          }
-        }
-      }
-      break;
-
-    case 'content_block_stop':
-      break;
-
-    case 'done':
-      if (event.message?.usage) {
-        showUsageInPanel(event.message.usage);
-      }
-      if (event.message?.content?.length === 0) {
-        log.warn('Empty response from model');
-        addErrorMessage('Model returned empty response. Try a different model.');
-        updateStatus('error');
-      }
-      break;
-
-    case 'turn_end':
-      finalizeCurrentMessage();
-      break;
-
     case 'tool_execution_start':
       log.info('Tool execution started:', event.toolName);
-      addToolCallBadge(event.toolName);
-      // Claim a task when tool starts
-      if (chatInput.hasPendingTasks()) {
-        claimNextTask();
-      }
+      currentToolExecution = {
+        name: event.toolName,
+        args: event.args,
+        status: 'running'
+      };
+      rightPanel.showToolExecution(event.toolName, event.args, null, false);
+
+      // Add task for this tool execution
+      addMessageTask({
+        id: 'tool_' + Date.now(),
+        title: `Running ${event.toolName}`,
+        status: 'in_progress',
+        icon: 'loader-2',
+        steps: [{
+          text: `Executing ${event.toolName}...`,
+          status: 'in_progress',
+          icon: 'loader-2',
+          timestamp: new Date().toLocaleTimeString(),
+        }]
+      });
       break;
 
     case 'tool_execution_end':
       log.info('Tool execution ended:', event.toolName, 'isError:', event.isError);
-      
-      // Move from action to result
-      actionSteps = actionSteps.filter(a => !a.text.includes(event.toolName));
-      completedResults.push({
-        type: 'badge',
-        variant: 'success',
-        icon: 'check-circle-2',
-        text: `${event.toolName} completed`,
-      });
-      
-      // Complete the current task on success
-      if (!event.isError) {
-        completeCurrentTask();
-        // Claim next task if available
-        if (chatInput.hasPendingTasks()) {
-          claimNextTask();
-        }
-      } else {
-        failCurrentTask(event.error?.message || 'Tool execution failed');
+
+      // Update right panel with tool result
+      if (currentToolExecution) {
+        currentToolExecution.status = event.isError ? 'error' : 'completed';
+        currentToolExecution.result = event.result;
+        rightPanel.showToolExecution(event.toolName, currentToolExecution.args, event.result, event.isError);
+        currentToolExecution = null;
       }
+
+      // Update the task step
+      updateLastTaskStep({
+        text: `${event.toolName} ${event.isError ? 'failed' : 'completed'}`,
+        status: event.isError ? 'error' : 'completed',
+        icon: event.isError ? 'x-circle' : 'check-circle-2',
+      });
 
       if (event.result) {
         const resultText = typeof event.result === 'string' ? event.result : JSON.stringify(event.result, null, 2);
         
-        if (resultText.includes('\n') || resultText.length > 80) {
+        // Add result to workspace if it's significant
+        if (resultText.length > 50) {
+          // Could be file content or output
           completedResults.push({
             type: 'code',
             language: 'json',
@@ -546,7 +714,81 @@ function handleAgentEvent(event) {
       const errorMsg = event.error?.errorMessage || event.error?.message || 'An error occurred';
       log.error('Agent error:', event.error);
       addErrorMessage(errorMsg);
+
+      // Mark last task as failed
+      updateLastTaskStep({
+        text: 'Task failed',
+        status: 'error',
+        icon: 'x-circle',
+      });
       break;
+  }
+}
+
+// ========== Message Task Functions ==========
+
+// Add a task to the current message
+function addMessageTask(task) {
+  const messages = chatMessages.options.messages;
+  const lastMessage = messages[messages.length - 1];
+  
+  if (lastMessage && lastMessage.isStreaming) {
+    if (!lastMessage.tasks) {
+      lastMessage.tasks = [];
+    }
+    lastMessage.tasks.push(task);
+    currentMessageTaskId = task.id;
+    chatMessages.upsertTask(task);
+  }
+}
+
+// Update the last step of the last task
+function updateLastTaskStep(updates) {
+  const messages = chatMessages.options.messages;
+  const lastMessage = messages[messages.length - 1];
+  
+  if (lastMessage && lastMessage.tasks && lastMessage.tasks.length > 0) {
+    const lastTask = lastMessage.tasks[lastMessage.tasks.length - 1];
+    if (lastTask.steps && lastTask.steps.length > 0) {
+      const lastStep = lastTask.steps[lastTask.steps.length - 1];
+      Object.assign(lastStep, updates);
+      lastStep.timestamp = new Date().toLocaleTimeString();
+      
+      // Update task status based on step
+      if (updates.status === 'completed') {
+        lastTask.status = 'completed';
+        lastTask.icon = 'check-circle';
+      } else if (updates.status === 'error') {
+        lastTask.status = 'error';
+        lastTask.icon = 'x-circle';
+      }
+      
+      chatMessages.upsertTask(lastTask);
+    }
+  }
+}
+
+// Complete all tasks in the last message
+function finalizeMessageTasks() {
+  const messages = chatMessages.options.messages;
+  const lastMessage = messages[messages.length - 1];
+  
+  if (lastMessage && lastMessage.tasks) {
+    lastMessage.tasks.forEach(task => {
+      if (task.status === 'in_progress') {
+        task.status = 'completed';
+        task.icon = 'check-circle';
+        if (task.steps) {
+          task.steps.forEach(step => {
+            if (step.status === 'in_progress') {
+              step.status = 'completed';
+              step.icon = 'check-circle-2';
+            }
+          });
+        }
+      }
+    });
+    chatMessages.refresh();
   }
 }
 
@@ -555,14 +797,14 @@ function resetStreamingState() {
   currentStreamingMessage = null;
   pendingBadges = [];
   pendingCodeBlocks = [];
-  pendingAlerts = [];
   pendingTerminal = null;
   pendingReasoning = null;
   currentNarration = '';
   actionSteps = [];
   completedResults = [];
-  nextSteps = [];
-  currentPhase = 'planning'; // planning, action, result
+  pendingAlerts = [];
+  currentPhase = 'planning';
+  currentToolExecution = null;
 }
 
 // Parse content into structured sections
@@ -646,89 +888,22 @@ function processMessageUpdate(event) {
   const messages = chatMessages.options.messages;
   const lastMessage = messages[messages.length - 1];
 
-  // ONLY process structured content if we have actual thinking/reasoning blocks
-  // Don't parse regular message content as planning steps
-  let hasActualReasoning = false;
-  
-  // Check if there's actual thinking content from the model
-  for (const block of event.partial.content) {
-    if (block.type === 'thinking' && block.thinking?.trim().length > 0) {
-      hasActualReasoning = true;
-      break;
-    }
-  }
-
-  // Only build reasoning section if model sent actual thinking blocks
-  if (hasActualReasoning) {
-    const structured = parseStructuredContent(content);
-
-    // Update phase based on content
-    if (structured.planning.length > 0 && !currentPhase) {
-      currentPhase = 'planning';
-    }
-
-    // Build reasoning from structured content
-    if (structured.planning.length > 0) {
-      pendingReasoning = {
-        type: 'reasoning',
-        title: '📋 Planning',
-        steps: structured.planning.map((text, i) => ({
-          text: text,
-          loading: i === structured.planning.length - 1 && currentPhase === 'planning',
-          icon: i < structured.planning.length - 1 ? 'check-circle-2' : 'circle',
-        })),
-      };
-    }
-
-    if (structured.action.length > 0) {
-      currentPhase = 'action';
-      // Add action steps
-      for (const text of structured.action) {
-        if (!actionSteps.find(a => a.text === text)) {
-          actionSteps.push({
-            type: 'badge',
-            variant: 'primary',
-            icon: 'loader-2',
-            text: text,
-            animated: true,
-          });
-        }
-      }
-    }
-
-    if (structured.result.length > 0) {
-      currentPhase = 'result';
-      // Add result as completed
-      for (const text of structured.result) {
-        if (text.length > 100 || text.includes('```')) {
-          // Likely code output
-          completedResults.push({
-            type: 'code',
-            language: 'text',
-            code: text,
-          });
-        } else {
-          completedResults.push({
-            type: 'badge',
-            variant: 'success',
-            icon: 'check-circle-2',
-            text: text,
-          });
-        }
-      }
-    }
-  }
-
   // Process all block types from the event
   for (const block of event.partial.content) {
     if (block.type === 'thinking') {
-      // Action: Reasoning - shows thinking process
+      // Streaming thinking process
       if (block.thinking?.trim().length > 0) {
+        // Add/update reasoning in the UI
         pendingReasoning = {
           type: 'reasoning',
-          title: 'Reasoning Process',
-          steps: [{ text: block.thinking, loading: true, icon: 'brain' }],
+          title: '🤔 Thinking Process',
+          steps: [{
+            text: block.thinking,
+            loading: true,
+            icon: 'brain',
+          }],
         };
+        updateMessageItems();
       }
     } else if (block.type === 'toolCall') {
       // Action: Tool being called
@@ -741,6 +916,7 @@ function processMessageUpdate(event) {
           text: `Calling ${block.name}...`,
           animated: true,
         });
+        updateMessageItems();
       }
     } else if (block.type === 'toolResult') {
       // Result: Tool execution completed
@@ -762,94 +938,47 @@ function processMessageUpdate(event) {
           code: toolResultText,
         });
       }
-    } else if (block.type === 'code') {
-      // Result: Code generated
-      completedResults.push({
-        type: 'code',
-        language: block.language || 'text',
-        code: block.code || block.text || '',
-      });
-    } else if (block.type === 'error' || block.type === 'alert') {
-      // Result: Error occurred
-      pendingAlerts.push({
-        type: 'alert',
-        variant: 'error',
-        title: block.title || 'Error',
-        message: block.message || block.text || 'An error occurred',
-      });
-    } else if (block.type === 'terminal' || block.type === 'output') {
-      // Result: Terminal output
-      const lines = block.lines || [{ text: block.content || block.text || '', variant: 'text-base-content' }];
-      completedResults.push({
-        type: 'terminal',
-        lines: lines,
-        footer: block.footer || '',
-      });
-    } else if (block.type === 'nextStep') {
-      // Next step: What's coming next
-      nextSteps.push({
-        type: 'badge',
-        variant: 'info',
-        icon: 'arrow-right',
-        text: block.text || block.content || 'Next step',
-      });
+
+      updateMessageItems();
     }
   }
 
-  // Build items in order: Action → Result → Next Step
-  const items = [];
-  
-  // Action: Reasoning (if thinking)
-  if (pendingReasoning) {
-    items.push(pendingReasoning);
-  }
-  
-  // Action: Steps in progress
-  if (actionSteps.length > 0) {
-    items.push(...actionSteps);
-  }
-  
-  // Result: Completed items
-  if (completedResults.length > 0) {
-    items.push(...completedResults);
-  }
-  
-  // Alerts (errors)
-  if (pendingAlerts.length > 0) {
-    items.push(...pendingAlerts);
-  }
-  
-  // Next Step: What's coming
-  if (nextSteps.length > 0) {
-    items.push(...nextSteps);
-  }
-
-  // Check if we have a streaming message placeholder
+  // Update chat messages with current content
   if (lastMessage && lastMessage.isStreaming) {
-    lastMessage.content = currentNarration;
-    lastMessage.items = items;
-    // Use efficient streaming update
     chatMessages.updateLastMessageContent(currentNarration);
+  }
+}
+
+// Update message items helper
+function updateMessageItems() {
+  const messages = chatMessages.options.messages;
+  const lastMessage = messages[messages.length - 1];
+
+  if (lastMessage && lastMessage.isStreaming) {
+    const items = [];
+
+    // Add reasoning if exists
+    if (pendingReasoning) {
+      items.push(pendingReasoning);
+    }
+
+    // Add action badges
+    if (actionSteps.length > 0) {
+      items.push(...actionSteps);
+    }
+
+    // Add completed results
+    if (completedResults.length > 0) {
+      items.push(...completedResults);
+    }
+
+    // Add alerts
+    if (pendingAlerts.length > 0) {
+      items.push(...pendingAlerts);
+    }
+
+    lastMessage.items = items;
     chatMessages.updateLastMessageItems(items);
-  } else {
-    currentStreamingMessage = {
-      type: 'response',
-      content: currentNarration,
-      items: items,
-      isStreaming: true,
-    };
-    chatMessages.addMessage(currentStreamingMessage);
-  }
-
-  // Scroll to bottom
-  const container = document.getElementById('chatMessagesContainer');
-  if (container) {
-    container.scrollTop = container.scrollHeight;
-  }
-
-  // Update usage stats if available
-  if (event.partial?.usage) {
-    showUsageInPanel(event.partial.usage);
   }
 }
 
@@ -859,6 +988,9 @@ function finalizeCurrentMessage() {
 
   if (lastMessage && lastMessage.isStreaming) {
     lastMessage.isStreaming = false;
+    
+    // Finalize all tasks
+    finalizeMessageTasks();
 
     // Finalize items in order: Planning → Action → Result
     const finalizedItems = [];
@@ -867,7 +999,7 @@ function finalizeCurrentMessage() {
     if (pendingReasoning) {
       finalizedItems.push({
         type: 'reasoning',
-        title: '📋 Planning',
+        title: 'Planning',
         steps: pendingReasoning.steps.map((step, i) => ({
           ...step,
           loading: false,
@@ -906,14 +1038,6 @@ function finalizeCurrentMessage() {
     // Alerts: Add any errors
     for (const alert of pendingAlerts) {
       finalizedItems.push(alert);
-    }
-
-    // Next Step: Mark as ready
-    for (const step of nextSteps) {
-      finalizedItems.push({
-        ...step,
-        variant: 'info',
-      });
     }
 
     // If no items yet, check pendingCodeBlocks and pendingTerminal
@@ -1006,39 +1130,6 @@ function addToolCallBadge(toolName) {
   });
 
   updateMessageItems();
-}
-
-function updateMessageItems() {
-  const messages = chatMessages.options.messages;
-  const lastMessage = messages[messages.length - 1];
-  
-  if (lastMessage && lastMessage.isStreaming) {
-    const items = [];
-    
-    // Action: Reasoning
-    if (pendingReasoning) {
-      items.push(pendingReasoning);
-    }
-    
-    // Action: Steps in progress
-    if (actionSteps.length > 0) {
-      items.push(...actionSteps);
-    }
-    
-    // Result: Completed items
-    if (completedResults.length > 0) {
-      items.push(...completedResults);
-    }
-    
-    // Alerts
-    if (pendingAlerts.length > 0) items.push(...pendingAlerts);
-    
-    // Next steps
-    if (nextSteps.length > 0) items.push(...nextSteps);
-    
-    lastMessage.items = items;
-    chatMessages.refresh();
-  }
 }
 
 function addErrorMessage(error) {
@@ -1201,6 +1292,16 @@ async function sendMessage(message) {
   if (!agent) {
     agent = initAgent();
     if (!agent) return;
+  }
+
+  // Clear right panel for new message
+  rightPanel.clear();
+  currentUsage = null;
+
+  // Show timeline container for x-agent style UI
+  const timelineContainer = document.getElementById('timelineContainer');
+  if (timelineContainer) {
+    timelineContainer.classList.remove('hidden');
   }
 
   // Add user message

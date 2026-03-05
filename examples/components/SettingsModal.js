@@ -335,7 +335,7 @@ export class SettingsModal {
         localStorage.setItem('openrouter_api_key', key);
         this.apiKey = key;
         if (apiKeyStatus) {
-          apiKeyStatus.textContent = '✓ API key saved';
+          apiKeyStatus.textContent = 'API key saved';
           apiKeyStatus.className = 'text-xs mt-1 text-success';
         }
         this.options.onApiKeyChange?.(key);
@@ -375,7 +375,7 @@ export class SettingsModal {
       this.systemPrompt = systemPromptTextarea.value.trim();
       this.options.onSystemPromptChange?.(this.systemPrompt);
       if (apiKeyStatus) {
-        apiKeyStatus.textContent = '✓ System prompt saved';
+        apiKeyStatus.textContent = 'System prompt saved';
         apiKeyStatus.className = 'text-xs mt-1 text-success';
         setTimeout(() => {
           if (apiKeyStatus) apiKeyStatus.textContent = '';
@@ -475,7 +475,7 @@ export class SettingsModal {
         const popularModels = models.filter(m => popularIds.includes(m.id));
         if (popularModels.length > 0) {
           const popularGroup = document.createElement('optgroup');
-          popularGroup.label = '⭐ Popular';
+          popularGroup.label = 'Popular';
           for (const model of popularModels) {
             const option = document.createElement('option');
             option.value = model.id;

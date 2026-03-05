@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MessageNavigation Component Example</title>
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css">
+  <style>
+    :root {
+      --fg-primary: #ffffff;
+      --fg-secondary: #a1a1aa;
+      --fg-tertiary: #71717a;
+      --button-ghost-hover: rgba(255, 255, 255, 0.1);
+      --primary: #6366f1;
+    }
+    
+    [data-theme="dark"] {
+      --fg-primary: #ffffff;
+      --fg-secondary: #a1a1aa;
+      --fg-tertiary: #71717a;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-base-300">
+  <div class="container mx-auto p-4 max-w-4xl">
+    <h1 class="text-3xl font-bold text-center mb-6 text-primary">MessageNavigation Component</h1>
+    
+    <!-- Example 1: Standalone Navigation -->
+    <div class="card bg-base-200 shadow-xl mb-6">
+      <div class="card-body">
+        <h2 class="card-title text-secondary mb-4">Standalone Navigation</h2>
+        <div class="relative h-32 bg-base-300 rounded-lg mb-4">
+          <div id="message1" class="absolute top-4 left-4 right-4 p-4 bg-base-100 rounded-lg">
+            <p class="text-sm">Message 1 content here...</p>
+          </div>
+          <div id="message2" class="absolute top-16 left-4 right-4 p-4 bg-base-100 rounded-lg">
+            <p class="text-sm">Message 2 content here...</p>
+          </div>
+          <!-- Navigation will be inserted here -->
+          <div id="navContainer1" class="absolute right-4 top-1/2 -translate-y-1/2"></div>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="updateNav1(0)" class="btn btn-sm btn-primary">Go to Message 1</button>
+          <button onclick="updateNav1(1)" class="btn btn-sm btn-primary">Go to Message 2</button>
+          <button onclick="updateTotalMessages()" class="btn btn-sm btn-secondary">Add Message</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Example 2: With ChatMessages Integration -->
+    <div class="card bg-base-200 shadow-xl mb-6">
+      <div class="card-body">
+        <h2 class="card-title text-secondary mb-4">ChatMessages Integration</h2>
+        <div id="chatContainer" class="relative h-96 bg-base-300 rounded-lg overflow-y-auto">
+          <div id="messageList" class="p-4 space-y-4">
+            <!-- Messages will be added here -->
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button onclick="addChatMessage()" class="btn btn-sm btn-primary">Add Message</button>
+          <button onclick="clearChat()" class="btn btn-sm btn-error">Clear Chat</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Code Example -->
+    <div class="card bg-base-200 shadow-xl">
+      <div class="card-body">
+        <h2 class="card-title text-secondary mb-4">Usage Example</h2>
+        <pre class="bg-base-300 p-4 rounded-lg overflow-x-auto text-xs">
+<code>import { MessageNavigation } from './components/MessageNavigation.js';
+
+// Create navigation instance
+const navigation = new MessageNavigation({
+  container: document.getElementById('navContainer'),
+  currentIndex: 0,
+  totalMessages: 5,
+  isFirstMessage: false,
+  isLastMessage: true,
+  onNavigate: (index) => {
+    // Handle navigation
+    const message = document.querySelector(\`[data-message-index="\${index}"]\`);
+    if (message) {
+      message.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  },
+});
+
+// Update navigation state
+navigation.update({ currentIndex: 2, totalMessages: 6 });</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { MessageNavigation } from './components/MessageNavigation.js';
+
+    // Example 1: Standalone Navigation
+    let nav1 = null;
+    let totalMessages1 = 2;
+
+    function initNav1() {
+      nav1 = new MessageNavigation({
+        container: document.getElementById('navContainer1'),
+        currentIndex: 0,
+        totalMessages: totalMessages1,
+        isFirstMessage: true,
+        isLastMessage: false,
+        onNavigate: (index) => {
+          console.log('Navigate to message:', index);
+          const msg = document.getElementById(\`message\${index + 1}\`);
+          if (msg) {
+            msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+          nav1.update({ currentIndex: index });
+        },
+      });
+    }
+
+    window.updateNav1 = (index) => {
+      if (nav1) {
+        nav1.update({ 
+          currentIndex: index,
+          isFirstMessage: index === 0,
+          isLastMessage: index === totalMessages1 - 1,
+        });
+      }
+    };
+
+    window.updateTotalMessages = () => {
+      totalMessages1++;
+      const newDiv = document.createElement('div');
+      newDiv.id = \`message\${totalMessages1}\`;
+      newDiv.className = 'absolute left-4 right-4 p-4 bg-base-100 rounded-lg';
+      newDiv.style.top = `${(totalMessages1 - 1) * 64 + 16}px`;
+      newDiv.innerHTML = \`<p class="text-sm">Message \${totalMessages1} content here...</p>\`;
+      document.querySelector('.relative.h-32').appendChild(newDiv);
+      
+      if (nav1) {
+        nav1.update({ 
+          totalMessages: totalMessages1,
+          isLastMessage: false,
+        });
+      }
+    };
+
+    // Example 2: ChatMessages Integration
+    let chatNav = null;
+    let chatMessageCount = 0;
+
+    function initChatNav() {
+      const container = document.createElement('div');
+      container.id = 'chatNavContainer';
+      container.className = 'absolute right-4 top-4 z-10';
+      document.getElementById('chatContainer').appendChild(container);
+
+      chatNav = new MessageNavigation({
+        container: container,
+        currentIndex: 0,
+        totalMessages: 0,
+        isFirstMessage: true,
+        isLastMessage: true,
+        onNavigate: (index) => {
+          const msg = document.querySelector(\`[data-chat-message="\${index}"]\`);
+          if (msg) {
+            msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+          chatNav.update({ currentIndex: index });
+        },
+      });
+    }
+
+    window.addChatMessage = () => {
+      chatMessageCount++;
+      const messageList = document.getElementById('messageList');
+      const msg = document.createElement('div');
+      msg.dataset.chatMessage = chatMessageCount - 1;
+      msg.className = 'p-4 bg-base-100 rounded-lg transition-colors hover:bg-base-200 cursor-pointer';
+      msg.innerHTML = \`
+        <div class="flex items-center gap-2 mb-2">
+          <div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+            <i data-lucide="bot" class="w-4 h-4 text-white"></i>
+          </div>
+          <span class="text-sm font-medium">Assistant</span>
+          <span class="text-xs text-base-content/50">Message \${chatMessageCount}</span>
+        </div>
+        <p class="text-sm text-base-content">This is message \${chatMessageCount}. Click on the navigation dots above to jump between messages.</p>
+      \`;
+      messageList.appendChild(msg);
+      
+      // Refresh Lucide icons
+      if (window.lucide) {
+        window.lucide.createIcons();
+      }
+
+      // Scroll to bottom
+      const chatContainer = document.getElementById('chatContainer');
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+
+      // Update navigation
+      if (chatNav) {
+        chatNav.update({
+          totalMessages: chatMessageCount,
+          currentIndex: chatMessageCount - 1,
+          isFirstMessage: chatMessageCount === 1,
+          isLastMessage: true,
+        });
+      }
+    };
+
+    window.clearChat = () => {
+      document.getElementById('messageList').innerHTML = '';
+      chatMessageCount = 0;
+      if (chatNav) {
+        chatNav.update({
+          totalMessages: 0,
+          currentIndex: 0,
+          isFirstMessage: true,
+          isLastMessage: true,
+        });
+      }
+    };
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      initNav1();
+      initChatNav();
+      
+      // Add initial chat messages
+      window.addChatMessage();
+      window.addChatMessage();
+    });
+
+    // Load Lucide icons
+    window.lucide = { createIcons: () => {} };
+    import('https://unpkg.com/lucide@latest').then(({ createIcons }) => {
+      window.lucide.createIcons = createIcons;
+      createIcons();
+    });
+  </script>
+</body>
+</html>

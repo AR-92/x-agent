@@ -72,9 +72,9 @@ export const chatMessages = new ChatMessages({
         {
           type: 'terminal',
           lines: [
-            { text: '✓ PASS src/utils/format.test.ts', variant: 'text-success' },
-            { text: '✓ PASS src/utils/date.test.ts', variant: 'text-success' },
-            { text: '✓ PASS src/components/Button.test.tsx', variant: 'text-success' },
+            { text: 'PASS src/utils/format.test.ts', variant: 'text-success' },
+            { text: 'PASS src/utils/date.test.ts', variant: 'text-success' },
+            { text: 'PASS src/components/Button.test.tsx', variant: 'text-success' },
           ],
           footer: 'Tests: 12 passed, 0 failed',
         },

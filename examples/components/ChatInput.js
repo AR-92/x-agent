@@ -1,22 +1,19 @@
 /**
  * ChatInput Component
- * A theme-aware chat input component with task list, attachments, and voice input.
- * Extracted from examples/example.html
- * 
+ * A theme-aware chat input component with attachments and voice input.
+ *
  * Usage:
  *   import { ChatInput } from './components/ChatInput.js';
- *   
+ *
  *   const chatInput = new ChatInput({
  *     container: document.body,
- *     placeholder: 'Send message to Accelerator...',
- *     tasks: [
- *       { text: 'Task 1', status: 'completed' },
- *       { text: 'Task 2', status: 'active' },
- *     ],
+ *     placeholder: 'Send message...',
  *     onSend: (message) => { console.log('Sent:', message); },
  *     onAttachment: () => { console.log('Attachment clicked'); },
  *     onVoice: () => { console.log('Voice clicked'); },
  *     onPlus: () => { console.log('Plus clicked'); },
+ *     onStop: () => { console.log('Stop clicked'); },
+ *     onSteer: (message) => { console.log('Steer:', message); },
  *   });
  */
 
@@ -25,8 +22,7 @@ export class ChatInput {
     this.options = {
       container: null,
       placeholder: 'Send message...',
-      tasks: [],
-      maxTextareaHeight: 200,
+      maxTextareaHeight: 60,
       onSend: null,
       onAttachment: null,
       onVoice: null,
@@ -36,14 +32,14 @@ export class ChatInput {
       ...options,
     };
 
-    this.tasks = this.options.tasks;
+    this.tasks = [];
     this.isTasksVisible = false;
     this.isRunning = false;
     this.element = null;
-    
+
     this.render();
     this.attachEvents();
-    
+
     // Initialize Lucide icons
     if (window.lucide) {
       window.lucide.createIcons();
@@ -53,8 +49,8 @@ export class ChatInput {
   render() {
     const container = document.createElement('div');
     container.className = 'p-4 z-20';
-    
-    // Get initial task data
+
+    // Get task data
     const completedCount = this.tasks.filter(t => t.status === 'completed').length;
     const totalCount = this.tasks.length;
     const activeTask = this.tasks.find(t => t.status === 'active') || this.tasks[this.tasks.length - 1];
@@ -99,9 +95,9 @@ export class ChatInput {
               </button>
             </div>
 
-<textarea
+            <textarea
               id="chatTextarea"
-              placeholder="Send message to Accelerator..."
+              placeholder="Send message to x-agent..."
               class="textarea textarea-ghost flex-1 resize-none focus:outline-none text-xs bg-transparent py-1 text-base-content placeholder-base-content/30 border-none"
               rows="1"
               style="max-height: 60px; min-height: 28px; height: 28px; overflow: hidden; scrollbar-width: none; -ms-overflow-style: none;"
@@ -128,7 +124,7 @@ export class ChatInput {
 
     this.options.container.appendChild(container);
     this.element = container;
-    
+
     // Cache DOM elements
     this.tasksList = container.querySelector('#tasksList');
     this.tasksContent = container.querySelector('#tasksContent');
@@ -143,10 +139,6 @@ export class ChatInput {
     this.sendBtn = container.querySelector('#sendBtn');
     this.stopBtn = container.querySelector('#stopBtn');
     this.steerBtn = container.querySelector('#steerBtn');
-    this.steerContainer = container.querySelector('#steerContainer');
-    this.steerInput = container.querySelector('#steerInput');
-    this.steerSendBtn = container.querySelector('#steerSendBtn');
-    this.steerCancelBtn = container.querySelector('#steerCancelBtn');
     this.completedPills = container.querySelector('#completedPills');
     this.taskBarContainer = container.querySelector('#taskBarContainer');
   }
@@ -155,9 +147,9 @@ export class ChatInput {
     const completedTasks = this.tasks.filter(t => t.status === 'completed');
     const activeTasks = this.tasks.filter(t => t.status === 'active');
     const failedTasks = this.tasks.filter(t => t.status === 'failed');
-    
+
     let pills = '';
-    
+
     for (const task of activeTasks) {
       pills += `
         <div class="badge badge-primary gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] animate-pulse">
@@ -166,7 +158,7 @@ export class ChatInput {
         </div>
       `;
     }
-    
+
     for (const task of completedTasks) {
       pills += `
         <div class="badge badge-success gap-0.5 px-1.5 py-0.5 rounded-full text-[10px]">
@@ -175,7 +167,7 @@ export class ChatInput {
         </div>
       `;
     }
-    
+
     for (const task of failedTasks) {
       pills += `
         <div class="badge badge-error gap-0.5 px-1.5 py-0.5 rounded-full text-[10px]" title="${this.escapeHtml(task.error || '')}">
@@ -184,7 +176,7 @@ export class ChatInput {
         </div>
       `;
     }
-    
+
     return pills;
   }
 
@@ -194,11 +186,11 @@ export class ChatInput {
       const isActive = task.status === 'active';
       const isPending = task.status === 'pending';
       const isFailed = task.status === 'failed';
-      
+
       let icon = '';
       let iconClass = '';
       let textClass = '';
-      
+
       if (isCompleted) {
         icon = 'check';
         iconClass = 'text-success';
@@ -216,7 +208,7 @@ export class ChatInput {
         iconClass = 'text-base-content/40';
         textClass = 'text-base-content';
       }
-      
+
       return `
         <div class="flex items-center gap-1.5 text-xs" data-task-index="${index}">
           <i data-lucide="${icon}" class="w-3 h-3 ${iconClass}"></i>
@@ -232,7 +224,7 @@ export class ChatInput {
     // Auto-resize textarea
     this.textarea.addEventListener('input', () => {
       this.textarea.style.height = 'auto';
-      this.textarea.style.height = Math.min(this.textarea.scrollHeight, 60) + 'px';
+      this.textarea.style.height = Math.min(this.textarea.scrollHeight, this.options.maxTextareaHeight) + 'px';
     });
 
     // Toggle tasks
@@ -275,47 +267,8 @@ export class ChatInput {
 
     // Steer button
     this.steerBtn?.addEventListener('click', () => {
-      this.showSteerInput();
+      this.options.onSteer?.('');
     });
-
-    // Steer send button
-    this.steerSendBtn?.addEventListener('click', () => {
-      this.sendSteer();
-    });
-
-    // Steer cancel button
-    this.steerCancelBtn?.addEventListener('click', () => {
-      this.hideSteerInput();
-    });
-
-    // Steer input enter key
-    this.steerInput?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        this.sendSteer();
-      } else if (e.key === 'Escape') {
-        this.hideSteerInput();
-      }
-    });
-  }
-
-  showSteerInput() {
-    this.steerContainer?.classList.remove('hidden');
-    this.steerInput?.focus();
-  }
-
-  hideSteerInput() {
-    this.steerContainer?.classList.add('hidden');
-    if (this.steerInput) {
-      this.steerInput.value = '';
-    }
-  }
-
-  sendSteer() {
-    const message = this.steerInput?.value?.trim();
-    if (message) {
-      this.options.onSteer?.(message);
-      this.hideSteerInput();
-    }
   }
 
   toggleTasksList() {
@@ -376,6 +329,11 @@ export class ChatInput {
     }
   }
 
+  clearTasks() {
+    this.tasks = [];
+    this.renderTasks();
+  }
+
   sendMessage() {
     const message = this.textarea.value.trim();
     if (!message) return;
@@ -383,97 +341,6 @@ export class ChatInput {
     this.options.onSend?.(message);
     this.textarea.value = '';
     this.textarea.style.height = 'auto';
-  }
-
-  addTask(text, status = 'pending') {
-    this.tasks.push({ text, status });
-    this.renderTasks();
-    // Auto-show tasks when a task is added
-    if (!this.isTasksVisible) {
-      this.toggleTasksList();
-    }
-    return this.tasks.length - 1;
-  }
-
-  addTasks(taskList) {
-    // Add multiple tasks at once
-    const startIndex = this.tasks.length;
-    taskList.forEach(task => {
-      const text = typeof task === 'string' ? task : task.text;
-      const status = task.status || 'pending';
-      this.tasks.push({ text, status });
-    });
-    this.renderTasks();
-    // Auto-show tasks when tasks are added
-    if (!this.isTasksVisible) {
-      this.toggleTasksList();
-    }
-    return startIndex;
-  }
-
-  updateTask(index, updates) {
-    if (index >= 0 && index < this.tasks.length) {
-      this.tasks[index] = { ...this.tasks[index], ...updates };
-      this.renderTasks();
-    }
-  }
-
-  claimTask(index) {
-    // Mark a task as in progress (active)
-    if (index >= 0 && index < this.tasks.length) {
-      this.tasks[index].status = 'active';
-      this.renderTasks();
-    }
-  }
-
-  completeTask(index) {
-    // Mark a task as completed
-    if (index >= 0 && index < this.tasks.length) {
-      this.tasks[index].status = 'completed';
-      this.renderTasks();
-    }
-  }
-
-  failTask(index, error = null) {
-    // Mark a task as failed
-    if (index >= 0 && index < this.tasks.length) {
-      this.tasks[index].status = 'failed';
-      if (error) {
-        this.tasks[index].error = error;
-      }
-      this.renderTasks();
-    }
-  }
-
-  getActiveTask() {
-    return this.tasks.find(t => t.status === 'active');
-  }
-
-  getPendingTasks() {
-    return this.tasks.filter(t => t.status === 'pending');
-  }
-
-  getCompletedTasks() {
-    return this.tasks.filter(t => t.status === 'completed');
-  }
-
-  getNextPendingTask() {
-    return this.tasks.find(t => t.status === 'pending');
-  }
-
-  hasPendingTasks() {
-    return this.tasks.some(t => t.status === 'pending');
-  }
-
-  getProgress() {
-    const completed = this.tasks.filter(t => t.status === 'completed').length;
-    const total = this.tasks.length;
-    return { completed, total, percentage: total > 0 ? Math.round((completed / total) * 100) : 0 };
-  }
-
-  clearTasks() {
-    this.tasks = [];
-    this.renderTasks();
   }
 
   getValue() {

@@ -11,12 +11,12 @@
 </head>
 <body class="min-h-screen bg-base-300">
   <div class="container mx-auto p-4 max-w-7xl">
-    <h1 class="text-4xl font-bold text-center mb-6 text-primary">🤖 X-Agent + OpenRouter Test</h1>
+    <h1 class="text-4xl font-bold text-center mb-6 text-primary">X-Agent + OpenRouter Test</h1>
 
     <!-- Configuration -->
     <div class="card bg-base-200 shadow-xl mb-6">
       <div class="card-body">
-        <h2 class="card-title text-secondary mb-4">⚙️ Configuration</h2>
+        <h2 class="card-title text-secondary mb-4">Configuration</h2>
         <form onsubmit="return false;">
           <div class="form-control mb-4">
             <label class="label">
@@ -91,7 +91,7 @@
 1. **Acknowledgment**: "Understood! I'll help you with [task]."
 2. **Plan**: "Here's what I'll do: [brief outline]"
 3. **Execution**: [Perform the task with updates]
-4. **Summary**: "✓ Complete! Here's what I created: [list]"
+4. **Summary**: "Complete! Here's what I created: [list]"
 5. **Follow-up**: "Would you like me to [suggestion]?"</textarea>
           </div>
           <div class="form-control mb-4">
@@ -112,12 +112,12 @@
     </div>
 
     <!-- Main Content -->
-    <div class="grid grid-cols-1 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Chat Section -->
-      <div class="card bg-base-200 shadow-xl min-h-[600px] flex flex-col">
+      <div class="card bg-base-200 shadow-xl min-h-[600px] flex flex-col lg:col-span-2">
         <div class="card-body flex-1 flex flex-col">
           <h2 class="card-title text-secondary mb-4">💬 Chat</h2>
-          <div class="chat-messages flex-1 overflow-y-auto border border-base-300 rounded-lg p-4 bg-base-300 min-h-[400px] mb-4" id="chatMessages"></div>
+          <div class="chat-messages flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-base-content/20 scrollbar-track-transparent border border-base-300 rounded-lg p-4 bg-base-300 min-h-[400px] mb-4" id="chatMessages"></div>
           <div class="flex gap-2">
             <textarea id="userInput" placeholder="Type your message... (Try: 'Calculate 25 * 47', 'What is the capital of France?', or 'Count from 1 to 10')" class="textarea textarea-bordered flex-1 min-h-[60px]"></textarea>
             <div class="flex flex-col gap-2">
@@ -135,13 +135,31 @@
           </div>
           <div class="stats shadow mt-4" id="usageStats" style="display: none;">
             <div class="stat">
-              <div class="stat-title">📊 Usage</div>
+              <div class="stat-title">Usage</div>
               <div class="stat-value text-sm">
                 <span id="usageInput">Input: 0</span> |
                 <span id="usageOutput">Output: 0</span> |
                 <span id="usageTotal">Total: 0</span>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Side Panel -->
+      <div class="card bg-base-200 shadow-xl min-h-[600px] flex flex-col lg:col-span-1" id="sidePanel" style="display: none;">
+        <div class="card-body flex-1 flex flex-col">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="card-title text-secondary">📋 Task Details</h2>
+            <button class="btn btn-ghost btn-xs btn-circle" onclick="closeSidePanel()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6 6 18"></path>
+                <path d="m6 6 12 12"></path>
+              </svg>
+            </button>
+          </div>
+          <div class="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-base-content/20 scrollbar-track-transparent" id="sidePanelContent">
+            <!-- Content will be injected here -->
           </div>
         </div>
       </div>
@@ -177,6 +195,7 @@
       parseStreamingJson,
     } from './assets/js/x-agent-openrouter.min.js';
     import { ChatMessages } from './components/ChatMessages.js';
+    import { MessageNavigation } from './components/MessageNavigation.js';
     
     // Enable DEBUG logging for development
     setLogLevel(LogLevel.DEBUG);
@@ -432,7 +451,7 @@
             <img alt="${role}" src="${role === 'user' ? 'https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.jpg' : 'https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.jpg'}" />
           </div>
         </div>
-        <div class="chat-header text-sm opacity-50 mb-1">${role === 'user' ? '👤 You' : role === 'assistant' ? '🤖 Assistant' : '🔧 Tool Result'}</div>
+        <div class="chat-header text-sm opacity-50 mb-1">${role === 'user' ? 'You' : role === 'assistant' ? 'Assistant' : 'Tool Result'}</div>
         <div class="chat-bubble ${role === 'user' ? 'chat-bubble-primary' : role === 'assistant' ? 'chat-bubble-secondary' : 'chat-bubble-success'}">${escapeHtml(content)}${extraHtml}</div>
       `;
       chatMessages.appendChild(messageEl);
@@ -487,7 +506,7 @@
             html += `
               <div class="collapse collapse-arrow bg-base-100 my-2">
                 <input type="checkbox" checked />
-                <div class="collapse-title text-xs font-medium text-accent">🔧 Calling: ${block.name}</div>
+                <div class="collapse-title text-xs font-medium text-accent">Calling: ${block.name}</div>
                 <div class="collapse-content">
                   <pre class="text-xs bg-base-300 p-2 rounded">${escapeHtml(JSON.stringify(block.arguments, null, 2))}</pre>
                 </div>
@@ -564,6 +583,7 @@
 
     // Get or create ChatMessages instance
     let chatMessages = null;
+    let messageNavigation = null;
     function getChatMessages() {
       if (!chatMessages) {
         chatMessages = new ChatMessages({
@@ -571,12 +591,44 @@
           messages: [],
           logoIcon: 'hexagon',
           assistantName: 'Accelerator',
+          onMessageClick: (message, index) => {
+            // Update navigation to highlight clicked message
+            if (messageNavigation) {
+              messageNavigation.update({ currentIndex: index });
+            }
+          },
+        });
+
+        // Example: Create MessageNavigation instance (optional - for demo purposes)
+        // In production, you would create this once and update it as messages change
+        const navContainer = document.createElement('div');
+        navContainer.id = 'messageNavigationContainer';
+        navContainer.className = 'fixed bottom-4 right-4 z-50';
+        document.body.appendChild(navContainer);
+
+        messageNavigation = new MessageNavigation({
+          container: navContainer,
+          currentIndex: 0,
+          totalMessages: 0,
+          isFirstMessage: true,
+          isLastMessage: true,
+          onNavigate: (index) => {
+            // Scroll to the selected message
+            const messageElement = document.querySelector(`[data-message-index="${index}"]`);
+            if (messageElement) {
+              messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            // Update chatMessages state
+            if (chatMessages) {
+              // Highlight or perform any action on the selected message
+            }
+          },
         });
       }
       return chatMessages;
     }
 
-    // Show tool execution as Manus-style task card
+    // Show tool execution as x-agent style task card
     function showToolExecution(toolName, args) {
       const cm = getChatMessages();
       const taskId = `tool_${Date.now()}`;
@@ -774,7 +826,7 @@
       const popularModels = models.filter(m => popularIds.includes(m.id));
       if (popularModels.length > 0) {
         const popularGroup = document.createElement('optgroup');
-        popularGroup.label = '⭐ Popular';
+        popularGroup.label = 'Popular';
         for (const model of popularModels) {
           const option = document.createElement('option');
           option.value = model.id;

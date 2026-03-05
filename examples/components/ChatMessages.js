@@ -2,10 +2,11 @@
  * ChatMessages Component
  * A theme-aware component for displaying AI conversation responses.
  * Supports various content types: text, badges, code blocks, alerts, terminal, reasoning.
- * Enhanced with Manus agent-style task cards and progress tracking.
+ * Enhanced with x-agent style task cards and progress tracking.
  *
  * Usage:
  *   import { ChatMessages } from './components/ChatMessages.js';
+ *   import { MessageNavigation } from './components/MessageNavigation.js';
  *
  *   const chatMessages = new ChatMessages({
  *     container: document.getElementById('messagesContainer'),
@@ -51,6 +52,8 @@ export class ChatMessages {
       logoAlt: 'Logo',
       assistantName: 'Accelerator',
       onItemAction: null,
+      onMessageClick: null,
+      onTaskClick: null,
       ...options,
     };
 
@@ -78,26 +81,30 @@ export class ChatMessages {
     if (message.type === 'response') {
       const renderedContent = this.renderMarkdown(message.content);
       const timestamp = message.timestamp ? new Date(message.timestamp).toLocaleString() : new Date().toLocaleString();
-      
+
       return `
-        <div data-message-index="${index}" class="flex flex-col gap-2 w-full group mt-3">
+        <div data-message-index="${index}" class="flex flex-col gap-2 w-full group mt-3 cursor-pointer hover:bg-base-200/30 -mx-2 px-2 rounded-lg transition-colors" data-message-type="response" data-message-index="${index}">
           <div class="flex items-center justify-between h-[26px] group">
             <div class="flex items-center gap-[3px] -ms-[2px]">
               ${this.renderLogo()}
-              <svg height="10" width="59" fill="none" viewBox="0 0 59 10" xmlns="http://www.w3.org/2000/svg">
-                <path d="M52.481 9.37181H51.9695V6.36881H52.6625C52.8495 7.16081 53.119 7.73831 53.471 8.10131C53.823 8.46431 54.2795 8.64581 54.8405 8.64581C55.2475 8.64581 55.561 8.56331 55.781 8.39831C56.012 8.22231 56.1275 7.98581 56.1275 7.68881C56.1275 7.38081 55.99 7.08381 55.715 6.79781C55.44 6.50081 54.9945 6.18731 54.3785 5.85731C53.5425 5.40631 52.943 4.96081 52.58 4.52081C52.217 4.06981 52.0355 3.56381 52.0355 3.00281C52.0355 2.63981 52.1015 2.30431 52.2335 1.99631C52.3765 1.67731 52.5635 1.40231 52.7945 1.17131C53.0365 0.940313 53.3225 0.764313 53.6525 0.643312C53.9825 0.511313 54.34 0.445312 54.725 0.445312C55.066 0.445312 55.4015 0.494812 55.7315 0.593812C56.0725 0.692812 56.3695 0.830313 56.6225 1.00631L56.9195 0.610313H57.3485V3.10181H56.705C56.452 2.47481 56.188 2.02381 55.913 1.74881C55.649 1.47381 55.3245 1.33631 54.9395 1.33631C54.6315 1.33631 54.384 1.41881 54.197 1.58381C54.021 1.74881 53.933 1.96881 53.933 2.24381C53.933 2.55181 54.065 2.84331 54.329 3.11831C54.604 3.39331 55.055 3.69581 55.682 4.02581C56.122 4.26781 56.5015 4.50431 56.8205 4.73531C57.1395 4.96631 57.398 5.20281 57.596 5.44481C57.794 5.67581 57.937 5.92331 58.025 6.18731C58.124 6.44031 58.1735 6.71531 58.1735 7.01231C58.1735 7.39731 58.102 7.74381 57.959 8.05181C57.816 8.35981 57.6125 8.62381 57.3485 8.84381C57.0845 9.06381 56.7655 9.23431 56.3915 9.35531C56.0285 9.47631 55.6215 9.53681 55.1705 9.53681C54.6975 9.53681 54.2575 9.47631 53.8505 9.35531C53.4435 9.22331 53.108 9.03631 52.844 8.79431L52.481 9.37181Z" fill="currentColor" class="text-base-content"></path>
-              </svg>
+              <span class="text-[var(--text-secondary)] text-xs font-medium ml-0.5">${this.options.assistantName || 'x-agent'}</span>
               <span class="text-[var(--text-tertiary)] text-xs flex h-5 py-0.5 px-1.5 items-center gap-1 rounded-[6px] border border-[var(--border-dark)] flex-shrink-0 ml-[3px]">Lite</span>
             </div>
             <div class="flex items-center gap-[2px] invisible group-hover:visible">
+              <button class="btn btn-ghost btn-xs btn-circle h-5 w-5 min-h-0" title="View details" data-action>
+                <i data-lucide="view-details="inspect" class="w-3 h-3"></i>
+              </button>
               <div class="float-right transition text-[12px] text-[var(--text-tertiary)] invisible group-hover:visible">${timestamp}</div>
             </div>
           </div>
-          <div class="flex"><div class="w-[24px] relative"></div><div class="flex flex-col gap-2 flex-1 min-w-0 overflow-hidden pt-2">
-            <div dir="auto" class="max-w-none p-0 m-0 text-[16px] leading-[1.5] text-[var(--text-primary)] markdown-content group [&gt;*:first-child]:mt-0 [&gt;*:last-child]:mb-0">${renderedContent}</div>
-            ${message.items ? this.renderItems(message.items) : ''}
-            ${message.tasks ? this.renderTasks(message.tasks) : ''}
-          </div></div>
+          <div class="flex">
+            <div class="w-[24px] relative"></div>
+            <div class="flex flex-col gap-2 flex-1 min-w-0 overflow-hidden pt-2">
+              <div dir="auto" class="max-w-none p-0 m-0 text-[16px] leading-[1.5] text-[var(--text-primary)] markdown-content group [&gt;*:first-child]:mt-0 [&gt;*:last-child]:mb-0">${renderedContent}</div>
+              ${message.items ? this.renderItems(message.items) : ''}
+              ${message.tasks ? this.renderTasks(message.tasks) : ''}
+            </div>
+          </div>
         </div>
       `;
     }
@@ -323,10 +330,10 @@ export class ChatMessages {
     `;
   }
 
-  // Render Manus-style task cards
+  // Render x-agent style task cards
   renderTasks(tasks) {
     if (!tasks || tasks.length === 0) return '';
-    
+
     const taskIconMap = {
       'check-circle': 'check-circle',
       'check': 'check-circle',
@@ -341,7 +348,7 @@ export class ChatMessages {
       'package-plus': 'package-plus',
       'brain': 'brain',
     };
-    
+
     return `
       <div class="flex flex-col gap-2 mt-2 w-full">
         ${tasks.map((task, taskIndex) => {
@@ -361,13 +368,13 @@ export class ChatMessages {
           };
           const statusColor = statusColors[task.status] || 'text-base-content';
           const bgColor = statusBg[task.status] || 'bg-base-300';
-          
+
           return `
             <div class="task-card w-full" data-task-id="${task.id || taskIndex}">
               <div class="text-sm w-full clickable flex gap-2 justify-between group/header truncate text-base-content ${isExpanded ? '' : ''}" data-task-header>
                 <div class="flex flex-row gap-2 justify-center items-center truncate">
                   <div class="w-4 h-4 flex-shrink-0 flex items-center justify-center rounded-full ${task.status === 'completed' ? 'bg-success text-success-content' : task.status === 'in_progress' ? 'bg-primary text-primary-content' : 'bg-base-300'}">
-                    ${task.status === 'completed' 
+                    ${task.status === 'completed'
                       ? '<i data-lucide="check" class="w-2.5 h-2.5"></i>'
                       : task.status === 'in_progress'
                         ? '<i data-lucide="loader-2" class="w-2.5 h-2.5 animate-spin"></i>'
@@ -394,7 +401,7 @@ export class ChatMessages {
                         const stepIcon = step.status === 'completed' ? 'check-circle' : step.status === 'in_progress' ? 'loader-2' : 'circle';
                         const stepVariant = step.status === 'completed' ? 'text-success' : step.status === 'in_progress' ? 'text-primary' : step.status === 'error' ? 'text-error' : 'text-base-content/50';
                         const stepAnimated = step.status === 'in_progress' ? 'animate-spin' : '';
-                        
+
                         return `
                           <div class="flex items-center group gap-2 w-full" data-step="${stepIndex}">
                             <div class="flex-1 min-w-0 h-[28px]">
@@ -431,11 +438,33 @@ export class ChatMessages {
       </div>
       <script>
         document.querySelectorAll('.task-card [data-task-header]').forEach(header => {
-          header.addEventListener('click', function() {
+          header.addEventListener('click', function(e) {
+            e.stopPropagation();
             const card = this.closest('.task-card');
+            const taskId = card.dataset.taskId;
             const content = card.querySelector('[data-task-content]');
             const chevron = this.querySelector('[data-lucide="chevron-down"]');
             
+            // Dispatch custom event for side panel
+            const taskClickEvent = new CustomEvent('task-click', {
+              bubbles: true,
+              detail: { taskId, card }
+            });
+            card.dispatchEvent(taskClickEvent);
+            
+            // Also call the onTaskClick callback if provided
+            const messageIndex = card.closest('[data-message-index]')?.dataset.messageIndex;
+            if (messageIndex !== undefined && window.chatMessagesInstance) {
+              const messages = window.chatMessagesInstance.options.messages;
+              const message = messages[parseInt(messageIndex)];
+              if (message && window.chatMessagesInstance.options.onTaskClick) {
+                // Find the specific task
+                const task = message.tasks?.find(t => t.id === taskId);
+                window.chatMessagesInstance.options.onTaskClick(task || { id: taskId }, message, parseInt(messageIndex));
+              }
+            }
+            
+            // Toggle expand/collapse
             if (content.classList.contains('max-h-0')) {
               content.classList.remove('max-h-0', 'opacity-0');
               content.classList.add('max-h-[5000px]', 'opacity-100');
@@ -511,6 +540,22 @@ export class ChatMessages {
     this.options.messages.push(message);
     const messageHtml = this.renderMessage(message, this.options.messages.length - 1);
     this.element.insertAdjacentHTML('beforeend', messageHtml);
+    
+    // Attach click handler to the newly added message
+    const messageElements = this.element.querySelectorAll('[data-message-index]');
+    const lastMessage = messageElements[messageElements.length - 1];
+    if (lastMessage) {
+      lastMessage.addEventListener('click', (e) => {
+        // Don't trigger if clicking on interactive elements
+        if (e.target.closest('button, a, [contenteditable]')) return;
+        
+        const msgIndex = parseInt(lastMessage.dataset.messageIndex);
+        const clickedMessage = this.options.messages[msgIndex];
+        if (clickedMessage && clickedMessage.type === 'response' && this.options.onMessageClick) {
+          this.options.onMessageClick(clickedMessage, msgIndex);
+        }
+      });
+    }
     
     if (window.lucide) {
       window.lucide.createIcons();
