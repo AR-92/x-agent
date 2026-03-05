@@ -136,20 +136,6 @@ export class ChatMessages {
 
     return '';
   }
-              <i data-lucide="user" class="w-3.5 h-3.5 text-primary"></i>
-            </div>
-          </div>
-          <div class="pr-10">
-            <div class="bg-primary text-primary-content rounded-box px-2.5 py-1.5 max-w-[80%] ml-auto">
-              <p class="text-xs leading-relaxed">${this.escapeHtml(message.content)}</p>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-    
-    return '';
-  }
 
   renderMarkdown(content) {
     if (!content) return '';
